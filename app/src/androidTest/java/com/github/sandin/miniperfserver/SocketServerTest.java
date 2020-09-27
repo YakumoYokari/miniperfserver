@@ -30,7 +30,12 @@ public class SocketServerTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mSocketServer = new SocketServer(mContext, SOCKET_NAME);
+        mSocketServer = new SocketServer(mContext, SOCKET_NAME, new SocketServer.Callback() {
+            @Override
+            public byte[] onMessage(byte[] msg) {
+                return null;
+            }
+        });
     }
 
     @After
