@@ -34,12 +34,12 @@ public class SocketServer {
     private static final String TAG = "MiniPerfServer";
 
     /**
-     * Socket timeout
+     * Socket timeout(connect, write, read)
      */
     private static final int SOCKET_CONNECTION_TIMEOUT_MS = 1000;
 
     /**
-     * client max idle time(no connection)
+     * client max idle time(no more communication)
      */
     private static final long MAX_CONNECTION_IDLE_TIME_MS = 5 * 60 * 1000;
 
@@ -66,7 +66,7 @@ public class SocketServer {
     private static final int STATE_RUNNING = 1;
 
     /**
-     * Thread pool for client connection
+     * Thread pool for client connections
      */
     private static Executor sThreadPool = Executors.newFixedThreadPool(3);
 
@@ -110,13 +110,13 @@ public class SocketServer {
     private String mSocketName = null;
 
     /**
-     * normal socket server
+     * Normal socket server
      */
     @Nullable
     private ServerSocket mServerSocket;
 
     /**
-     * normal socket server pot
+     * Normal socket server pot
      */
     private int mSocketPort;
 
@@ -273,7 +273,7 @@ public class SocketServer {
                     }
                 }
             }
-        }.start(); // TODO: need the stop this thread
+        }.start(); // TODO: need to stop this thread
     }
 
     /**
