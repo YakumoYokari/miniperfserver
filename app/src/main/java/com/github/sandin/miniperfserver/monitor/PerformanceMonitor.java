@@ -4,12 +4,12 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.github.sandin.miniperfserver.bean.TargetApp;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.annotation.Nullable;
 
 /**
  * The Performance Monitor
@@ -20,6 +20,8 @@ public class PerformanceMonitor {
     private final Context mContext;
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
+    private final String mSource;
+
 
     private final List<IMonitor> mMonitors = new ArrayList<>();
 
@@ -37,16 +39,20 @@ public class PerformanceMonitor {
     /**
      * Constructor
      *
-     * @param context system context
-     * @param intervalMs interval time in ms
+     * @param context              system context
+     * @param intervalMs           interval time in ms
      * @param screenshotIntervalMs screenshot interval time in ms
+     * @param source               data source
      */
-    public PerformanceMonitor(Context context, int intervalMs, int screenshotIntervalMs) {
+    public PerformanceMonitor(Context context, int intervalMs, int screenshotIntervalMs, String source) {
         mContext = context;
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
+        mSource = source;
 
         registerMonitor(new MemoryMonitor(context));
+        registerMonitor(new BatteryMonitor(context, source));
+        registerMonitor(new CpuTemperatureMonitor());
     }
 
     /**

@@ -1,14 +1,20 @@
 package com.github.sandin.miniperfserver;
 
+import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
+import com.github.sandin.miniperfserver.proto.GetBatteryInfoReq;
+import com.github.sandin.miniperfserver.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperfserver.proto.Memory;
 import com.github.sandin.miniperfserver.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperfserver.proto.Power;
 
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -37,7 +43,7 @@ public class SocketServerUnitTest {
 
     @Test
     public void getMemory() throws Exception {
-        int pid = 3274;
+        int pid = 26077;
 
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetMemoryUsageReq(
                 GetMemoryUsageReq.newBuilder().setPid(pid)).build();
@@ -54,6 +60,22 @@ public class SocketServerUnitTest {
         Assert.assertNotNull(memory);
         System.out.println("memory" + MemoryMonitor.dumpMemory(memory));
         Assert.assertTrue(memory.getPss() > 0);
+    }
+
+    @Test
+    public void getBatteryInfo() throws IOException {
+        MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetBatteryInfoReq(GetBatteryInfoReq.newBuilder()).build();
+        System.out.println("send request: " + request);
+        mClient.sendMessage(request.toByteArray());
+        byte[] bytes = mClient.readMessage();
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(bytes);
+        System.out.println("recv response: " + response);
+
+        GetBatteryInfoRsp rsp = response.getGetBatteryInfoRsp();
+        Assert.assertNotNull(rsp);
+        Power power = rsp.getPower();
+        Assert.assertNotNull(power);
+        System.out.println("power"+ BatteryMonitor.dumpPower(power));
     }
 
 }

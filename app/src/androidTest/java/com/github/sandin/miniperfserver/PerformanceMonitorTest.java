@@ -2,6 +2,10 @@ package com.github.sandin.miniperfserver;
 
 import android.content.Context;
 
+import androidx.test.espresso.core.internal.deps.guava.base.Predicate;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.PerformanceMonitor;
 import com.github.sandin.miniperfserver.util.AndroidProcessUtils;
@@ -10,9 +14,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import static org.junit.Assert.assertTrue;
 
@@ -32,7 +33,7 @@ public class PerformanceMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mPerformanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000);
+        mPerformanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000, null);
 
         int pid = AndroidProcessUtils.getPid(mContext, TARGET_PACKAGE_NAME);
         assertTrue(pid != -1);
