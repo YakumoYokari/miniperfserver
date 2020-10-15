@@ -1,6 +1,7 @@
 package com.genymobile.scrcpy.wrappers;
 
 import android.annotation.SuppressLint;
+import android.graphics.Bitmap;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.IBinder;
@@ -28,6 +29,7 @@ public final class SurfaceControl {
 
     private static Method getBuiltInDisplayMethod;
     private static Method setDisplayPowerModeMethod;
+    private static Method screenshotMethod;
 
     private SurfaceControl() {
         // only static methods
@@ -135,6 +137,63 @@ public final class SurfaceControl {
             CLASS.getMethod("destroyDisplay", IBinder.class).invoke(null, displayToken);
         } catch (Exception e) {
             throw new AssertionError(e);
+        }
+    }
+
+
+    /**
+     *
+     * https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/view/SurfaceControl.java;bpv=1;bpt=1
+     *
+     * 11.0 R /10.0 Q
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, boolean useIdentityTransform, int rotation)
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, int rotation)
+     *
+     * 9.0 P
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, int minLayer, int maxLayer, boolean useIdentityTransform, int rotation)
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, int rotation)
+     *
+     * 8.0 O/7.0 N
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, int minLayer, int maxLayer, boolean useIdentityTransform, int rotation)
+     * public static Bitmap screenshot(int width, int height)
+     *
+     * 6.0 M
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, int minLayer, int maxLayer, boolean useIdentityTransform, int rotation)
+     * public static Bitmap screenshot(int width, int height)
+     *
+     * 5.1 L
+     * public static Bitmap screenshot(Rect sourceCrop, int width, int height, int minLayer, int maxLayer, boolean useIdentityTransform, int rotation)
+     * public static Bitmap screenshot(int width, int height)
+     *
+     * 4.4
+     * public static Bitmap screenshot(int width, int height, int minLayer, int maxLayer)
+     * public static Bitmap screenshot(int width, int height)
+     *
+     * @return
+     * @throws NoSuchMethodException
+     */
+    private static Method getScreenshotMethod() throws NoSuchMethodException {
+        if (screenshotMethod == null) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                screenshotMethod = CLASS.getMethod("screenshot", int.class, int.class);
+            } else {
+                screenshotMethod = CLASS.getMethod("screenshot", Rect.class, int.class, int.class, int.class);
+            }
+        }
+        return screenshotMethod;
+    }
+
+    public static Bitmap screenshot(int width, int height) {
+        try {
+            Method method = getScreenshotMethod();
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                return (Bitmap) method.invoke(null, width, height);
+            } else {
+                return (Bitmap) method.invoke(null, new Rect(), width, height, 0);
+            }
+        } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }
