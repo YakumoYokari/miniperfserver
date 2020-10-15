@@ -1,6 +1,7 @@
 package com.github.sandin.miniperfserver;
 
 import android.content.Context;
+import android.net.TrafficStats;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 

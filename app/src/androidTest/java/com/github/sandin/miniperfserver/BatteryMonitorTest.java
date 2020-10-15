@@ -22,7 +22,7 @@ public class BatteryMonitorTest {
 
     private Context mContext;
     private BatteryMonitor mBatteryMonitor;
-    private String[] mSources = {"server", "dex", "app"};
+    private String[] mSources = {"server", "dex"};
 
     @Before
     public void setUp() {
@@ -35,23 +35,10 @@ public class BatteryMonitorTest {
         mBatteryMonitor = null;
     }
 
-//    @Test
-//    public void getVoltageFromDumpTest() throws IOException {
-//        int voltage = mBatteryMonitor.getVoltageFromDump();
-//        Assert.assertNotEquals(0, voltage);
-//    }
-//
-//    @Test
-//    public void getCurrentFromSettingFileTest() {
-//        int current = mBatteryMonitor.getCurrentFromSettingFile();
-//        Assert.assertNotEquals(0, current);
-//    }
-//
-//    @Test
-//    public void getVoltageFromSettingFileTest() {
-//        int voltage = mBatteryMonitor.getVoltageFromSettingFile();
-//        Assert.assertNotEquals(0, voltage);
-//    }
+    @Test
+    public void getPowerInfoFromServerTest(){
+
+    }
 
     @Test
     public void collectTest() throws Exception {

@@ -1,7 +1,10 @@
 package com.github.sandin.miniperfserver.util;
 
+import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.telephony.TelephonyManager;
 
 import java.util.List;
 
@@ -14,7 +17,14 @@ public final class AndroidProcessUtils {
         // static functions only
     }
 
-    public static int getPid(Context context,  String packageName) {
+    //获取SubscriberId
+    @SuppressLint("MissingPermission")
+    public static String getSubscriberId(Context context) {
+        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        return tm.getSubscriberId();
+    }
+
+    public static int getPid(Context context, String packageName) {
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> pids = am.getRunningAppProcesses();
         int pid = -1;
@@ -28,5 +38,18 @@ public final class AndroidProcessUtils {
         }
         return pid;
     }
+
+    /**
+     * 获取应用uid
+     */
+    public static int getUid(Context context, String packageName) {
+        try {
+            return context.getPackageManager().getApplicationInfo(packageName, 0).uid;
+        } catch (PackageManager.NameNotFoundException e) {
+            e.printStackTrace();
+        }
+        return -1;
+    }
+
 
 }

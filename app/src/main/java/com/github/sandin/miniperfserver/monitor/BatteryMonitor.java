@@ -4,22 +4,17 @@ import android.content.Context;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
-import android.os.IBinder;
-import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
 import androidx.annotation.VisibleForTesting;
 
-import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.github.sandin.miniperfserver.bean.TargetApp;
+import com.github.sandin.miniperfserver.data.DataSource;
 import com.github.sandin.miniperfserver.proto.Power;
+import com.github.sandin.miniperfserver.util.ReadSystemInfoUtils;
 
-import java.io.BufferedReader;
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.List;
 
 public class BatteryMonitor implements IMonitor<Power> {
 
@@ -27,15 +22,12 @@ public class BatteryMonitor implements IMonitor<Power> {
     private final BatteryManager mBatteryManager;
     //collect data from server or dex or app, default use dex
     private String mSource;
-    private String[] currentSettingFilePaths = {
-            "/sys/class/power_supply/battery/current_now",
-            "/sys/class/power_supply/battery/batt_current_now",
-            "/sys/class/power_supply/battery/batt_current"
-    };
-    private String[] voltageSettingFilePaths = {"/sys/class/power_supply/battery/voltage_now"};
+    private Context mContext;
+
 
     public BatteryMonitor(Context context) {
         this.mBatteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+        this.mContext = context;
     }
 
     /**
@@ -58,66 +50,55 @@ public class BatteryMonitor implements IMonitor<Power> {
         return sb.toString();
     }
 
-    @VisibleForTesting
-    private int getBatteryInfoFromSettingFile(String[] paths) throws Exception {
-        int info = 0;
-        FileReader fileReader = null;
-        BufferedReader br = null;
-        for (String path : paths) {
-            File settingFile = new File(path);
-            if (settingFile != null) {
-                fileReader = new FileReader(settingFile);
-                br = new BufferedReader(fileReader);
-                info = Integer.parseInt(br.readLine());
-                info /= 1000; //u -> m
-                if (info != 0) {
-                    break;
-                }
-            }
-        }
-        close(br, fileReader);
-        return info;
+    //读取配置文件出来的单位为μ
+    private static int micro2Milli(int micro) {
+        return Math.round((float) micro / 1000);
     }
 
     /**
      * get voltage from dump
      */
     @VisibleForTesting
-    private int getVoltageFromDump() throws IOException {
-        IBinder batteryService = ServiceManager.getService("battery");
-        if (batteryService != null) {
-            ParcelFileDescriptor[] pipe = new ParcelFileDescriptor[0];
-            BufferedReader reader = null;
-            try {
-                pipe = ParcelFileDescriptor.createPipe();
-                batteryService.dump(pipe[1].getFileDescriptor(), new String[0]);
-                //first read, second write
-                reader = new BufferedReader(new InputStreamReader(new ParcelFileDescriptor.AutoCloseInputStream(pipe[0])));
-                String line = null;
-                while (!line.startsWith("voltage:") && reader.ready()) {
-                    line = reader.readLine().trim();
-                }
-                if (line != null) {
-                    int voltage = Integer.parseInt(line.substring(8).trim());
-                    return voltage;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                close(reader, pipe[0], pipe[1]);
+    private int getVoltageFromDump() {
+        int voltage = 0;
+        List<String> content = ReadSystemInfoUtils.readInfoFromDumpsys("battery");
+        if (content.size() > 0) {
+            for (String line : content) {
+                if (line.startsWith("voltage:"))
+                    voltage = Integer.parseInt(line.substring(8).trim());
             }
         }
-        return 0;
+        return voltage;
     }
 
-    private void close(Closeable... needCloseObjects) throws IOException {
-        for (Closeable needCloseObject : needCloseObjects) {
-            if (needCloseObject != null) {
-                needCloseObject.close();
-            }
+    @VisibleForTesting
+    private Power getPowerInfoFromServer() {
+        int voltage = 0;
+        int current = 0;
+        List<String> currentContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sCurrentSystemFilePaths);
+        List<String> voltageContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sVoltageSystemFilePaths);
+        if (currentContent.size() > 0 && voltageContent.size() > 0) {
+            voltage = micro2Milli(Integer.parseInt(voltageContent.get(0)));
+            current = micro2Milli(Math.abs(Integer.parseInt(currentContent.get(0))));
         }
+        return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @VisibleForTesting
+    private Power getPowerInfoFromApp() {
+        int current = micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
+        int voltage = mContext.registerReceiver(null, new IntentFilter("android.intent.action.BATTERY_CHANGED")).getIntExtra("voltage", -1);
+        return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @VisibleForTesting
+    private Power getPowerInfoFromDex() {
+        int current = micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
+        int voltage = getVoltageFromDump();
+        return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
+    }
 
     @Override
     public Power collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
@@ -125,32 +106,18 @@ public class BatteryMonitor implements IMonitor<Power> {
         if (Build.VERSION.SDK_INT < 21) {
             return Power.getDefaultInstance();
         }
-        Power.Builder powerBuilder = Power.newBuilder();
-        int current;
-        int voltage;
+        Power power;
         switch (mSource) {
             case "server":
-                current = getBatteryInfoFromSettingFile(currentSettingFilePaths);
-                voltage = getBatteryInfoFromSettingFile(voltageSettingFilePaths);
+                power = getPowerInfoFromServer();
                 break;
             case "app":
-                current = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                voltage = context.registerReceiver(null, new IntentFilter("android.intent.action.BATTERY_CHANGED")).getIntExtra("voltage", -1);
+                power = getPowerInfoFromApp();
                 break;
             default:
-                current = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-                voltage = getVoltageFromDump();
+                power = getPowerInfoFromDex();
                 break;
         }
-        if (Math.abs(current) > 10000) {
-            current /= 1000;
-        }
-        if (Math.abs(voltage) > 10000) {
-            voltage /= 1000;
-        }
-        powerBuilder.setVoltage(voltage);
-        powerBuilder.setCurrent(current);
-        Power power = powerBuilder.build();
         Log.v(TAG, dumpPower(power));
         return power;
     }

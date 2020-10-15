@@ -49,10 +49,12 @@ public class PerformanceMonitor {
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
         mSource = source;
-
         registerMonitor(new MemoryMonitor(context));
         registerMonitor(new BatteryMonitor(context, source));
         registerMonitor(new CpuTemperatureMonitor());
+        //TODO need package name
+        registerMonitor(new CpuMonitor());
+        registerMonitor(new GpuMonitor());
     }
 
     /**
