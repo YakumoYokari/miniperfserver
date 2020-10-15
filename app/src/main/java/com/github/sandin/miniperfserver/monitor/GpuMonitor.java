@@ -13,12 +13,18 @@ import com.github.sandin.miniperfserver.util.ReadSystemInfoUtils;
 import java.util.List;
 
 /*
-*  Gpu Monitor
-* */
+ *  Gpu Monitor
+ * */
 public class GpuMonitor implements IMonitor<GpuInfo> {
 
     private static final String TAG = "GpuMonitor";
 
+
+    /**
+     * dump gpu info
+     * @param gpuInfo
+     * @return string of gpu info
+     */
     public static String dumpGpuInfo(GpuInfo gpuInfo) {
         StringBuilder sb = new StringBuilder();
         sb.append("[GpuInfo");
@@ -37,7 +43,7 @@ public class GpuMonitor implements IMonitor<GpuInfo> {
     }
 
     private int getGpuUsage() {
-        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sGpuUsageSystemFilePaths);
+        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.GPU_USAGE_SYSTEM_FILE_PATHS);
         System.out.println(content.toString());
         float usagePercentage = 0;
         if (content.size() > 0) {

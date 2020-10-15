@@ -14,7 +14,7 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
     private static final String TAG = "CpuTemperatureMonitor";
 
     private int getCpuTemperature() {
-        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sCpuTemperatureSystemFilePaths);
+        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CPU_TEMPERATURE_SYSTEM_FILE_PATHS);
         int temperature = 0;
         if (content.size() > 0) {
             temperature = Integer.parseInt(content.get(0));

@@ -1,7 +1,7 @@
 package com.github.sandin.miniperfserver.data;
 
 public final class DataSource {
-    public static String[] sCpuTemperatureSystemFilePaths = {
+    public static final String[] CPU_TEMPERATURE_SYSTEM_FILE_PATHS = {
             "/sys/kernel/debug/tegra_thermal/temp_tj",
             "/sys/devices/platform/s5p-tmu/curr_temp",
             "/sys/devices/virtual/thermal/thermal_zone1/temp",//常用
@@ -19,17 +19,17 @@ public final class DataSource {
             "/sys/class/thermal/thermal_zone0/temp"
     };
 
-    public static String[] sCurrentSystemFilePaths = {
+    public static String[] CURRENT_SYSTEM_FILE_PATHS = {
             "/sys/class/power_supply/battery/current_now",
 //            "/sys/class/power_supply/battery/batt_current_now",
 //            "/sys/class/power_supply/battery/batt_current"
     };
 
-    public static String[] sVoltageSystemFilePaths = {
+    public static String[] VOLTAGE_SYSTEM_FILE_PATHS = {
             "/sys/class/power_supply/battery/voltage_now"
     };
 
-    public static String[] sGpuUsageSystemFilePaths = {
+    public static String[] GPU_USAGE_SYSTEM_FILE_PATHS = {
             "/sys/class/kgsl/kgsl-3d0/gpubusy",//高通
     };
 

@@ -24,7 +24,10 @@ public class BatteryMonitor implements IMonitor<Power> {
     private String mSource;
     private Context mContext;
 
-
+    /**
+     * Constructor
+     * @param context
+     */
     public BatteryMonitor(Context context) {
         this.mBatteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
         this.mContext = context;
@@ -41,6 +44,11 @@ public class BatteryMonitor implements IMonitor<Power> {
         this.mSource = source;
     }
 
+    /**
+     * dump power info
+     * @param power
+     * @return string of power info
+     */
     public static String dumpPower(Power power) {
         StringBuilder sb = new StringBuilder();
         sb.append("[Power");
@@ -75,8 +83,8 @@ public class BatteryMonitor implements IMonitor<Power> {
     private Power getPowerInfoFromServer() {
         int voltage = 0;
         int current = 0;
-        List<String> currentContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sCurrentSystemFilePaths);
-        List<String> voltageContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sVoltageSystemFilePaths);
+        List<String> currentContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CURRENT_SYSTEM_FILE_PATHS);
+        List<String> voltageContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.VOLTAGE_SYSTEM_FILE_PATHS);
         if (currentContent.size() > 0 && voltageContent.size() > 0) {
             voltage = micro2Milli(Integer.parseInt(voltageContent.get(0)));
             current = micro2Milli(Math.abs(Integer.parseInt(currentContent.get(0))));

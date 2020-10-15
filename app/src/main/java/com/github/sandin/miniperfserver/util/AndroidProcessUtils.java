@@ -17,13 +17,22 @@ public final class AndroidProcessUtils {
         // static functions only
     }
 
-    //获取SubscriberId
-    @SuppressLint("MissingPermission")
+    /**
+     * get phone subscriber id
+     * @param context
+     * @return SubscriberId
+     */
     public static String getSubscriberId(Context context) {
         TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         return tm.getSubscriberId();
     }
 
+    /**
+     * get application's pid
+     * @param context
+     * @param packageName
+     * @return use application's package name to get pid
+     */
     public static int getPid(Context context, String packageName) {
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> pids = am.getRunningAppProcesses();
@@ -40,7 +49,10 @@ public final class AndroidProcessUtils {
     }
 
     /**
-     * 获取应用uid
+     * get application's uid
+     * @param context
+     * @param packageName
+     * @return
      */
     public static int getUid(Context context, String packageName) {
         try {

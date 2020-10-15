@@ -86,6 +86,11 @@ public class MemoryMonitor implements IMonitor<Memory> {
         return memory;
     }
 
+    /**
+     * dump memoryInfo
+     * @param memory
+     * @return
+     */
     public static final String dumpMemory(Memory memory) {
         StringBuilder sb = new StringBuilder();
         sb.append("[Memory");

@@ -1,19 +1,14 @@
 package com.github.sandin.miniperfserver;
 
-import android.app.usage.NetworkStatsManager;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.net.TrafficStats;
-import android.os.Process;
-import android.util.Log;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.NetworkMonitor;
-import com.github.sandin.miniperfserver.proto.Network;
 import com.github.sandin.miniperfserver.util.AndroidProcessUtils;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,16 +25,23 @@ public class NetworkMonitorTest {
     private int mUid;
 
     @Before
-    public void setUp() throws PackageManager.NameNotFoundException {
+    public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mNetworkMonitor = new NetworkMonitor();
         mUid = AndroidProcessUtils.getUid(mContext, PACKAGE_NAME);
-        mPid = AndroidProcessUtils.getPid(mContext,PACKAGE_NAME);
+        mPid = AndroidProcessUtils.getPid(mContext, PACKAGE_NAME);
         mTargetApp = new TargetApp(PACKAGE_NAME, mPid);
+        mNetworkMonitor = new NetworkMonitor(mContext);
+    }
+
+    @After
+    public void tearDown() {
+        mNetworkMonitor = null;
     }
 
     @Test
     public void collectTest() throws Exception {
-
+//        TrafficInfo trafficInfo = mNetworkMonitor.collect(mContext, mTargetApp, 0);
+//        Log.v(TAG, NetworkMonitor.dumpTraffics(trafficInfo));
+//        Assert.assertNotNull(trafficInfo);
     }
 }
