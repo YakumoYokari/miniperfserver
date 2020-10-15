@@ -27,7 +27,7 @@ public class ScreenshotMonitor implements IMonitor<Memory> {
         return null;
     }
 
-    public void takeScreenshot() throws Exception {
+    public void takeScreenshot(OutputStream outputStream) throws Exception {
         DisplayManager displayMgr = new ServiceManager().getDisplayManager();
         DisplayInfo displayInfo = displayMgr.getDisplayInfo(displayMgr.getDisplayIds()[0]);
         Log.i(TAG, "displayInfo: " + displayInfo);
@@ -42,10 +42,10 @@ public class ScreenshotMonitor implements IMonitor<Memory> {
         Log.i(TAG, "screenshot cost time: " + (System.nanoTime() - start));
         start = System.nanoTime();
 
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream("/data/local/tmp/test.jpg"));
+        //OutputStream outputStream = new BufferedOutputStream(new FileOutputStream("/data/local/tmp/test.jpg"));
         //OutputStream outputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream);
-        outputStream.close();
+        //outputStream.close();
         Log.i(TAG, "bitmap width: " + bitmap.getWidth() + ", height: " + bitmap.getHeight());
         Log.i(TAG, "screenshot to jpg file cost time: " + (System.nanoTime() - start));
     }

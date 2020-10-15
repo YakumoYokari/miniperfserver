@@ -12,6 +12,7 @@ import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
+import com.github.sandin.miniperfserver.monitor.ScreenshotMonitor;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageReq;
@@ -20,6 +21,7 @@ import com.github.sandin.miniperfserver.proto.Memory;
 import com.github.sandin.miniperfserver.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperfserver.proto.Power;
 import com.github.sandin.miniperfserver.server.SocketServer;
+import com.github.sandin.miniperfserver.util.ArgumentParser;
 
 /**
  * MiniPerfServer
@@ -59,17 +61,45 @@ public class MiniPerfServer implements SocketServer.Callback {
         Log.i(TAG, "launch, version " + BuildConfig.VERSION_NAME);
         Looper.prepareMainLooper();
         Process.setArgV0("MiniPerfServer");
+
+        ArgumentParser argumentParser = new ArgumentParser();
+        argumentParser.addArg("test", "test mode", false);
+        argumentParser.addArg("command", "command for test mode", true);
+        ArgumentParser.Arguments arguments = argumentParser.parse(args);
+
+        // ONLY FOR TEST
+        if (arguments.has("test" )) {
+            try {
+                test(arguments);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return;
+        }
+
         Context context = ActivityThread.systemMain().getSystemContext();
         if (context == null) {
             Log.e(TAG, "Can not get system context!");
             return;
         }
-
         MiniPerfServer app = new MiniPerfServer(context);
-        app.run();
+        app.run(arguments);
     }
 
-    public void run() {
+    public static void test(ArgumentParser.Arguments arguments) throws Exception {
+        String command = arguments.getAsString("command", null);
+        if (command != null) {
+            switch (command) {
+                case "screenshot":
+                    ScreenshotMonitor screenshotMonitor = new ScreenshotMonitor();
+                    screenshotMonitor.takeScreenshot(System.out);
+            }
+        } else {
+            System.out.println("[Error] no command");
+        }
+    }
+
+    public void run(ArgumentParser.Arguments arguments) {
         SocketServer server = new SocketServer(mContext, UNIX_DOMAIN_SOCKET_NAME, this);
         server.start();
     }
@@ -78,16 +108,20 @@ public class MiniPerfServer implements SocketServer.Callback {
     public byte[] onMessage(byte[] msg) {
         try {
             MiniPerfServerProtocol request = MiniPerfServerProtocol.parseFrom(msg);
-            // TODO: other requests
-            switch (request.getProtocolCase()){
-                case GETMEMORYUSAGEREQ:
-                    return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
-                case GETBATTERYINFOREQ:
-                    return handleGetBatteryInfoReq(request.getGetBatteryInfoReq());
-            }
-
+            return handleRequestMessage(request);
         } catch (Throwable e) {
             e.printStackTrace();
+        }
+        return null;
+    }
+
+    private byte[] handleRequestMessage(MiniPerfServerProtocol request) {
+        // TODO: other requests
+        switch (request.getProtocolCase()){
+            case GETMEMORYUSAGEREQ:
+                return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
+            case GETBATTERYINFOREQ:
+                return handleGetBatteryInfoReq(request.getGetBatteryInfoReq());
         }
         return null;
     }
