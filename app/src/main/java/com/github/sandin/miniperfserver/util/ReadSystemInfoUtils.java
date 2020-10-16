@@ -16,6 +16,11 @@ import java.util.Scanner;
 
 public class ReadSystemInfoUtils {
 
+    /**
+     * read system file info
+     * @param systemFilePaths
+     * @return system file info
+     */
     public static List<String> readInfoFromSystemFile(String[] systemFilePaths) {
         List<String> content = new LinkedList<>();
         for (String path : systemFilePaths) {
@@ -39,23 +44,13 @@ public class ReadSystemInfoUtils {
         return content;
     }
 
+    /**
+     * read system file info
+     * @param systemFilePath
+     * @return system file info
+     */
     public static List<String> readInfoFromSystemFile(String systemFilePath) {
-        List<String> content = new LinkedList<>();
-        File systemFile = new File(systemFilePath);
-        Scanner scanner = null;
-        if (systemFile.exists()) {
-            try {
-                scanner = new Scanner(systemFile);
-                if (scanner.hasNext()) {
-                    content.add(scanner.nextLine());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                close(scanner);
-            }
-        }
-        return content;
+        return readInfoFromSystemFile(new String[]{systemFilePath});
     }
 
     public static List<String> readInfoFromDumpsys(String serviceName) {

@@ -19,21 +19,21 @@ public final class DataSource {
             "/sys/class/thermal/thermal_zone0/temp"
     };
 
-    public static String[] CURRENT_SYSTEM_FILE_PATHS = {
+    public static final String[] CURRENT_SYSTEM_FILE_PATHS = {
             "/sys/class/power_supply/battery/current_now",
 //            "/sys/class/power_supply/battery/batt_current_now",
 //            "/sys/class/power_supply/battery/batt_current"
     };
 
-    public static String[] VOLTAGE_SYSTEM_FILE_PATHS = {
+    public static final String[] VOLTAGE_SYSTEM_FILE_PATHS = {
             "/sys/class/power_supply/battery/voltage_now"
     };
 
-    public static String[] GPU_USAGE_SYSTEM_FILE_PATHS = {
+    public static final String[] GPU_USAGE_SYSTEM_FILE_PATHS = {
             "/sys/class/kgsl/kgsl-3d0/gpubusy",//高通
     };
 
-    public static String[] sGpuClockSystemFilePaths = {
+    public static final String[] sGpuClockSystemFilePaths = {
             "/sys/class/kgsl/kgsl-3d0/gpuclk",//高通
     };
 
