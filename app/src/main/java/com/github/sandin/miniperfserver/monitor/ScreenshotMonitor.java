@@ -35,10 +35,11 @@ public class ScreenshotMonitor implements IMonitor<Memory> {
         Size size = displayInfo.getSize();
         int width = size.getWidth() / 3;
         int height = size.getHeight() / 3;
-        Log.i(TAG, "screen width: " + width + ", height: " + height);
+        int rotation = displayInfo.getRotation();
+        Log.i(TAG, "screen width: " + width + ", height: " + height + ", rotation:" + rotation);
 
         long start = System.nanoTime();
-        Bitmap bitmap = SurfaceControl.screenshot(width, height);
+        Bitmap bitmap = SurfaceControl.screenshot(width, height, rotation);
         Log.i(TAG, "screenshot cost time: " + (System.nanoTime() - start));
         start = System.nanoTime();
 

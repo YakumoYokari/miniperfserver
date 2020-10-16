@@ -183,13 +183,13 @@ public final class SurfaceControl {
         return screenshotMethod;
     }
 
-    public static Bitmap screenshot(int width, int height) {
+    public static Bitmap screenshot(int width, int height, int rotation) {
         try {
             Method method = getScreenshotMethod();
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
                 return (Bitmap) method.invoke(null, width, height);
             } else {
-                return (Bitmap) method.invoke(null, new Rect(), width, height, 0);
+                return (Bitmap) method.invoke(null, new Rect(), width, height, rotation);
             }
         } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
             e.printStackTrace();
