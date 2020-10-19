@@ -12,6 +12,8 @@ import android.util.Log;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.bean.TrafficInfo;
+import com.github.sandin.miniperfserver.proto.Network;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 import com.github.sandin.miniperfserver.util.AndroidProcessUtils;
 
 /**
@@ -33,6 +35,7 @@ public class NetworkMonitor implements IMonitor<TrafficInfo> {
 
     /**
      * dump traffic info
+     *
      * @param trafficInfo
      * @return string of trafficInfo
      */
@@ -77,11 +80,12 @@ public class NetworkMonitor implements IMonitor<TrafficInfo> {
     }
 
     @Override
-    public TrafficInfo collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+    public TrafficInfo collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect traffics data: timestamp=" + timestamp);
         int uid = AndroidProcessUtils.getUid(context, targetApp.getPackageName());
         TrafficInfo trafficInfo = getTraffics(uid);
         Log.v(TAG, dumpTraffics(trafficInfo));
+        data.setNetwork(Network.newBuilder().setDownload((int) trafficInfo.getDownload()).setUpload((int) trafficInfo.getUpload()).build());
         return trafficInfo;
     }
 }

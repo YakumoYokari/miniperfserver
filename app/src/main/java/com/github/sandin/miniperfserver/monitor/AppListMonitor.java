@@ -17,6 +17,7 @@ import android.util.Log;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.AppInfo;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 import com.google.protobuf.ByteString;
 
 import java.io.ByteArrayOutputStream;
@@ -34,7 +35,7 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
     }
 
     @Override
-    public List<AppInfo> collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+    public List<AppInfo> collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect application list data: timestamp=" + timestamp);
         ArrayList<AppInfo> appInfoList = new ArrayList<>();
         List<ApplicationInfo> installedApplications = mPackageManager.getInstalledApplications(0);

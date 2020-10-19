@@ -12,6 +12,7 @@ import androidx.annotation.VisibleForTesting;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.data.DataSource;
 import com.github.sandin.miniperfserver.proto.Power;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 import com.github.sandin.miniperfserver.util.ReadSystemInfoUtils;
 
 import java.util.List;
@@ -26,6 +27,7 @@ public class BatteryMonitor implements IMonitor<Power> {
 
     /**
      * Constructor
+     *
      * @param context
      */
     public BatteryMonitor(Context context) {
@@ -46,6 +48,7 @@ public class BatteryMonitor implements IMonitor<Power> {
 
     /**
      * dump power info
+     *
      * @param power
      * @return string of power info
      */
@@ -109,7 +112,7 @@ public class BatteryMonitor implements IMonitor<Power> {
     }
 
     @Override
-    public Power collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+    public Power collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect battery data: timestamp=" + timestamp);
         if (Build.VERSION.SDK_INT < 21) {
             return Power.getDefaultInstance();
@@ -126,6 +129,7 @@ public class BatteryMonitor implements IMonitor<Power> {
                 power = getPowerInfoFromDex();
                 break;
         }
+        data.setPower(power);
         Log.v(TAG, dumpPower(power));
         return power;
     }

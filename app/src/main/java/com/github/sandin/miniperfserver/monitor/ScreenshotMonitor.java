@@ -10,6 +10,7 @@ import com.genymobile.scrcpy.wrappers.DisplayManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.genymobile.scrcpy.wrappers.SurfaceControl;
 import com.github.sandin.miniperfserver.bean.TargetApp;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 import com.github.sandin.miniperfserver.proto.Screenshot;
 
 import java.io.OutputStream;
@@ -21,9 +22,11 @@ public class ScreenshotMonitor implements IMonitor<Screenshot> {
     private static final String TAG = "ScreenshotMonitor";
 
     @Override
-    public Screenshot collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
-        takeScreenshot(System.out);
-        return null;
+    public Screenshot collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+        Screenshot.Builder builder = Screenshot.newBuilder();
+        Screenshot screenshot = builder.build();
+        data.setScreenshot(screenshot);
+        return screenshot;
     }
 
     public void takeScreenshot(OutputStream outputStream) throws Exception {

@@ -132,6 +132,7 @@ public class MiniPerfServer implements SocketServer.Callback {
         switch (request.getProtocolCase()) {
             case PROFILEREQ:
                 handleProfileReq(request.getProfileReq());
+                break;
             case GETMEMORYUSAGEREQ:
                 return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
             case GETBATTERYINFOREQ:
@@ -172,7 +173,7 @@ public class MiniPerfServer implements SocketServer.Callback {
             mMemoryMonitor = new MemoryMonitor(mContext);
         }
         try {
-            Memory memory = mMemoryMonitor.collect(mContext, new TargetApp(null, request.getPid()), 0);
+            Memory memory = mMemoryMonitor.collect(mContext, new TargetApp(null, request.getPid()), 0, null);
             return MiniPerfServerProtocol.newBuilder().setGetMemoryUsageRsp(GetMemoryUsageRsp.newBuilder().setMemory(memory)).build().toByteArray();
         } catch (Throwable e) {
             e.printStackTrace();
@@ -185,7 +186,7 @@ public class MiniPerfServer implements SocketServer.Callback {
             mBatteryMonitor = new BatteryMonitor(mContext, null);
         }
         try {
-            Power power = mBatteryMonitor.collect(mContext, null, 0);
+            Power power = mBatteryMonitor.collect(mContext, null, 0, null);
             return MiniPerfServerProtocol.newBuilder().setGetBatteryInfoRsp(GetBatteryInfoRsp.newBuilder().setPower(power)).build().toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
@@ -198,7 +199,7 @@ public class MiniPerfServer implements SocketServer.Callback {
             mAppListMonitor = new AppListMonitor(mContext);
         }
         try {
-            List<AppInfo> appInfoList = mAppListMonitor.collect(mContext, null, 0);
+            List<AppInfo> appInfoList = mAppListMonitor.collect(mContext, null, 0, null);
             return MiniPerfServerProtocol.newBuilder().setGetAppInfoRsp(GetAppInfoRsp.newBuilder().addAllAppInfo(appInfoList)).build().toByteArray();
         } catch (Exception e) {
             e.printStackTrace();

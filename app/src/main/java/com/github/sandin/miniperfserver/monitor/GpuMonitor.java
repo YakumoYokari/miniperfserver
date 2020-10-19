@@ -8,6 +8,7 @@ import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.data.DataSource;
 import com.github.sandin.miniperfserver.proto.GpuFreq;
 import com.github.sandin.miniperfserver.proto.GpuUsage;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 import com.github.sandin.miniperfserver.util.ReadSystemInfoUtils;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public class GpuMonitor implements IMonitor<GpuInfo> {
 
     /**
      * dump gpu info
+     *
      * @param gpuInfo
      * @return string of gpu info
      */
@@ -59,12 +61,14 @@ public class GpuMonitor implements IMonitor<GpuInfo> {
     }
 
     @Override
-    public GpuInfo collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+    public GpuInfo collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect gpu data: timestamp=" + timestamp);
         GpuInfo gpuInfo = new GpuInfo();
         gpuInfo.setGpuUsage(GpuUsage.newBuilder().setGpuUsage(getGpuUsage()).build());
         gpuInfo.setGpuFreq(GpuFreq.newBuilder().setGpuFreq(getGpuClock()).build());
         Log.v(TAG, dumpGpuInfo(gpuInfo));
+        data.setGpuFreq(gpuInfo.getGpuFreq());
+        data.setGpuUsage(gpuInfo.getGpuUsage());
         return gpuInfo;
     }
 }

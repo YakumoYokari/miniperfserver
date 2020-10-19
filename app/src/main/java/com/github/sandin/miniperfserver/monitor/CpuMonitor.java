@@ -4,8 +4,8 @@ import android.content.Context;
 
 import com.github.sandin.miniperfserver.bean.CpuInfo;
 import com.github.sandin.miniperfserver.bean.TargetApp;
-import com.github.sandin.miniperfserver.proto.CpuFreq;
 import com.github.sandin.miniperfserver.proto.CpuUsage;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 import com.github.sandin.miniperfserver.util.AndroidProcessUtils;
 
 import java.io.File;
@@ -18,13 +18,15 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
     private Context mContext;
 
     @Override
-    public CpuInfo collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+    public CpuInfo collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         CpuInfo cpuInfo = new CpuInfo();
         cpu_fetch_loop(targetApp.getPackageName());
-        if (stat.allow_normalization){
+        if (stat.allow_normalization) {
             cpuInfo.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.normalized_usage).setAppUsage(stat.normalized_app_usage).build());
-        }else {
+            data.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.normalized_usage).setAppUsage(stat.normalized_app_usage));
+        } else {
             cpuInfo.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.usage).setAppUsage(stat.app_usage).build());
+            data.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.usage).setAppUsage(stat.app_usage));
         }
         return cpuInfo;
     }

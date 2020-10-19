@@ -2,6 +2,9 @@ package com.github.sandin.miniperfserver;
 
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
+import com.github.sandin.miniperfserver.proto.AppInfo;
+import com.github.sandin.miniperfserver.proto.GetAppInfoReq;
+import com.github.sandin.miniperfserver.proto.GetAppInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageReq;
@@ -15,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -76,6 +80,18 @@ public class SocketServerUnitTest {
         Power power = rsp.getPower();
         Assert.assertNotNull(power);
         System.out.println("power"+ BatteryMonitor.dumpPower(power));
+    }
+
+    @Test
+    public void getAppListTest() throws IOException {
+        MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetAppInfoReq(GetAppInfoReq.newBuilder()).build();
+        System.out.println("send request: " + request);
+        mClient.sendMessage(request.toByteArray());
+        byte[] bytes = mClient.readMessage();
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(bytes);
+        System.out.println("recv response: " + response);
+        List<AppInfo> appInfoList = response.getGetAppInfoRsp().getAppInfoList();
+        Assert.assertNotNull(appInfoList);
     }
 
 }

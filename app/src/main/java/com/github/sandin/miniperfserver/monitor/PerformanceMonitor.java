@@ -7,6 +7,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +21,6 @@ public class PerformanceMonitor {
     private final Context mContext;
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
-
-
     private final List<IMonitor> mMonitors = new ArrayList<>();
 
     @Nullable
@@ -91,16 +90,17 @@ public class PerformanceMonitor {
         }
     }
 
-    private void collectData(long timestamp) {
+    private ProfileNtf collectData(long timestamp) {
+        ProfileNtf.Builder data = ProfileNtf.newBuilder();
         try {
-            Object data;
             for (IMonitor<?> monitor : mMonitors) {
-//                monitor.collect(mContext, mTargetApp, timestamp,data);
-//                Log.v(TAG, "collect data: " + data);
+                monitor.collect(mContext, mTargetApp, timestamp, data);
+                Log.v(TAG, "collect data: " + data);
             }
         } catch (Throwable e) {
             e.printStackTrace();
         }
+        return data.build();
     }
 
     private class MonitorWorker implements Runnable {
@@ -112,7 +112,8 @@ public class PerformanceMonitor {
             mFirstTime = SystemClock.uptimeMillis();
             while (mIsRunning) {
                 long startTime = SystemClock.uptimeMillis();
-                collectData(startTime - mFirstTime);
+                ProfileNtf collectData = collectData(startTime - mFirstTime);
+                //TODO send data
                 mTickCount++;
                 long costTime = SystemClock.uptimeMillis() - startTime;
                 long sleepTime = mIntervalMs - costTime - 2;  // | costTime | sleepTime |
