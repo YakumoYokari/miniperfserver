@@ -3,17 +3,24 @@ package com.github.sandin.miniperfserver.monitor;
 import android.content.Context;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.FPS;
 import com.github.sandin.miniperfserver.util.AdbUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 public class FpsMonitor implements IMonitor<FPS> {
 
     private static final String TAG = "FpsMonitor";
     private String mLayerName;
+    private long mRefreshPeriod;
+    private long mLatestSeen = 0;
+    private List<Long> mElapsedTimes = new ArrayList<>();
 
     private boolean getLayerName(String packageName) throws IOException {
         String command = "dumpsys SurfaceFlinger --list";
@@ -27,25 +34,65 @@ public class FpsMonitor implements IMonitor<FPS> {
         return false;
     }
 
+    private List<String> getFramesData(@NonNull String layerName) throws IOException {
+        List<String> timestamps = new LinkedList<>();
+        if (layerName != null) {
+            String command = "dumpsys SurfaceFlinger --latency " + mLayerName;
+            timestamps = AdbUtils.executeCommand(command);
+        }
+        return timestamps;
+    }
+
+    private boolean sample(long readyTimeStamp, long presentTimeStamp) {
+        if (presentTimeStamp == Long.MAX_VALUE || readyTimeStamp == Long.MAX_VALUE) {
+            return false;
+        } else if (presentTimeStamp < mLatestSeen) {
+            return false;
+        } else if (presentTimeStamp == mLatestSeen) {
+            return true;
+        } else {
+            mElapsedTimes.add(presentTimeStamp);
+            mLatestSeen = presentTimeStamp;
+            return false;
+        }
+    }
+
     @Override
     public FPS collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+        FPS.Builder builder = FPS.newBuilder();
         boolean hasLayerName = getLayerName(targetApp.getPackageName());
         if (hasLayerName) {
             Log.e(TAG, "App not started or package name error");
             return null;
         }
-        String command = "dumpsys SurfaceFlinger --latency " + mLayerName;
-        List<String> result = AdbUtils.executeCommand(command);
-        if (result.size() == 1)
-            return null;
-        else if (result.get(1).length() == 3) {
-            for (String line : result) {
-                String[] timeStamps = line.split(" ");
-                long t0 = Long.parseLong(timeStamps[0]);//start time
-                long t1 = Long.parseLong(timeStamps[1]);//vsync
-                long t2 = Long.parseLong(timeStamps[2]);//finish time
+        List<Long> frameTimes = new LinkedList<>();
+        List<String> framesData = getFramesData(mLayerName);
+        if (framesData != null && framesData.size() > 1) {
+            mRefreshPeriod = Integer.parseInt(framesData.get(0));
+            boolean overlap = false;
+            for (int i = 1; i < framesData.size(); i++) {
+                String[] parts = framesData.get(i).split("\t");
+                if (parts.length == 3)
+                    if (sample(Long.parseLong(parts[2]), Long.parseLong(parts[1])))
+                        overlap = true;
+
+            }
+            if (!overlap) {
+                Log.e(TAG, "No overlap with previous poll");
+            }
+            long prevPresentTime = 0;
+            for (Long presentTime : mElapsedTimes) {
+                if (prevPresentTime == 0) {
+                    prevPresentTime = presentTime;
+                    continue;
+                }
+                long presentTimeDiff = presentTime - prevPresentTime;
+                frameTimes.add(presentTimeDiff);
             }
         }
-        return null;
+        //TODO
+        float fps = 60;
+        builder.setFps(60);
+        return builder.build();
     }
 }

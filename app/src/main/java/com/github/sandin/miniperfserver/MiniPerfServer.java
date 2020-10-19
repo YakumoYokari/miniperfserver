@@ -10,9 +10,15 @@ import androidx.annotation.Nullable;
 import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperfserver.bean.TargetApp;
+import com.github.sandin.miniperfserver.monitor.AppListMonitor;
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
+import com.github.sandin.miniperfserver.monitor.CpuTemperatureMonitor;
+import com.github.sandin.miniperfserver.monitor.FpsMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
+import com.github.sandin.miniperfserver.monitor.PerformanceMonitor;
 import com.github.sandin.miniperfserver.monitor.ScreenshotMonitor;
+import com.github.sandin.miniperfserver.proto.AppInfo;
+import com.github.sandin.miniperfserver.proto.GetAppInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageReq;
@@ -20,8 +26,11 @@ import com.github.sandin.miniperfserver.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperfserver.proto.Memory;
 import com.github.sandin.miniperfserver.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperfserver.proto.Power;
+import com.github.sandin.miniperfserver.proto.ProfileReq;
 import com.github.sandin.miniperfserver.server.SocketServer;
 import com.github.sandin.miniperfserver.util.ArgumentParser;
+
+import java.util.List;
 
 /**
  * MiniPerfServer
@@ -42,6 +51,9 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     @Nullable
     private BatteryMonitor mBatteryMonitor;
+
+    @Nullable
+    private AppListMonitor mAppListMonitor;
 
     private MiniPerfServer(@NonNull Context context) {
         mContext = context;
@@ -68,7 +80,7 @@ public class MiniPerfServer implements SocketServer.Callback {
         ArgumentParser.Arguments arguments = argumentParser.parse(args);
 
         // ONLY FOR TEST
-        if (arguments.has("test" )) {
+        if (arguments.has("test")) {
             try {
                 test(arguments);
             } catch (Exception e) {
@@ -117,13 +129,42 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleRequestMessage(MiniPerfServerProtocol request) {
         // TODO: other requests
-        switch (request.getProtocolCase()){
+        switch (request.getProtocolCase()) {
+            case PROFILEREQ:
+                handleProfileReq(request.getProfileReq());
             case GETMEMORYUSAGEREQ:
                 return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
             case GETBATTERYINFOREQ:
                 return handleGetBatteryInfoReq(request.getGetBatteryInfoReq());
+            case GETAPPINFOREQ:
+                return handleGetAppInfoReq();
         }
         return null;
+    }
+
+    private void handleProfileReq(ProfileReq request) {
+        TargetApp targetApp = new TargetApp();
+        targetApp.setPackageName(request.getProfileApp().getAppInfo().getPackageName());
+        targetApp.setPid(request.getProfileApp().getPidName().getPid());
+        List<ProfileReq.DataType> dataTypesList = request.getDataTypesList();
+        PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000);
+        for (ProfileReq.DataType dataType : dataTypesList) {
+            switch (dataType.name()) {
+                case "FPS":
+                    performanceMonitor.registerMonitor(new FpsMonitor());
+                    break;
+                case "MEMORY":
+                    performanceMonitor.registerMonitor(new MemoryMonitor(mContext));
+                    break;
+                case "BATTERY":
+                    performanceMonitor.registerMonitor(new BatteryMonitor(mContext, null));
+                    break;
+                case "CPU_TEMPERATURE":
+                    performanceMonitor.registerMonitor(new CpuTemperatureMonitor());
+                    break;
+            }
+        }
+        performanceMonitor.start(targetApp);
     }
 
     private byte[] handleGetMemoryUsageReq(GetMemoryUsageReq request) {
@@ -146,6 +187,19 @@ public class MiniPerfServer implements SocketServer.Callback {
         try {
             Power power = mBatteryMonitor.collect(mContext, null, 0);
             return MiniPerfServerProtocol.newBuilder().setGetBatteryInfoRsp(GetBatteryInfoRsp.newBuilder().setPower(power)).build().toByteArray();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    private byte[] handleGetAppInfoReq() {
+        if (mAppListMonitor == null) {
+            mAppListMonitor = new AppListMonitor(mContext);
+        }
+        try {
+            List<AppInfo> appInfoList = mAppListMonitor.collect(mContext, null, 0);
+            return MiniPerfServerProtocol.newBuilder().setGetAppInfoRsp(GetAppInfoRsp.newBuilder().addAllAppInfo(appInfoList)).build().toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
         }

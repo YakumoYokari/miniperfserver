@@ -20,7 +20,6 @@ public class PerformanceMonitor {
     private final Context mContext;
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
-    private final String mSource;
 
 
     private final List<IMonitor> mMonitors = new ArrayList<>();
@@ -42,19 +41,11 @@ public class PerformanceMonitor {
      * @param context              system context
      * @param intervalMs           interval time in ms
      * @param screenshotIntervalMs screenshot interval time in ms
-     * @param source               data source
      */
-    public PerformanceMonitor(Context context, int intervalMs, int screenshotIntervalMs, String source) {
+    public PerformanceMonitor(Context context, int intervalMs, int screenshotIntervalMs) {
         mContext = context;
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
-        mSource = source;
-        registerMonitor(new MemoryMonitor(context));
-        registerMonitor(new BatteryMonitor(context, source));
-        registerMonitor(new CpuTemperatureMonitor());
-        //TODO need package name
-        registerMonitor(new CpuMonitor());
-        registerMonitor(new GpuMonitor());
     }
 
     /**
@@ -102,9 +93,10 @@ public class PerformanceMonitor {
 
     private void collectData(long timestamp) {
         try {
+            Object data;
             for (IMonitor<?> monitor : mMonitors) {
-                Object data = monitor.collect(mContext, mTargetApp, timestamp);
-                //Log.v(TAG, "collect data: " + data);
+//                monitor.collect(mContext, mTargetApp, timestamp,data);
+//                Log.v(TAG, "collect data: " + data);
             }
         } catch (Throwable e) {
             e.printStackTrace();

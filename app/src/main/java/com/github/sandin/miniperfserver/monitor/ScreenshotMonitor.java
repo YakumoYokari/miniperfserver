@@ -10,20 +10,19 @@ import com.genymobile.scrcpy.wrappers.DisplayManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.genymobile.scrcpy.wrappers.SurfaceControl;
 import com.github.sandin.miniperfserver.bean.TargetApp;
-import com.github.sandin.miniperfserver.proto.Memory;
+import com.github.sandin.miniperfserver.proto.Screenshot;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 
 /**
  * Screenshot Monitor
  */
-public class ScreenshotMonitor implements IMonitor<Memory> {
+public class ScreenshotMonitor implements IMonitor<Screenshot> {
     private static final String TAG = "ScreenshotMonitor";
 
     @Override
-    public Memory collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+    public Screenshot collect(Context context, TargetApp targetApp, long timestamp) throws Exception {
+        takeScreenshot(System.out);
         return null;
     }
 
