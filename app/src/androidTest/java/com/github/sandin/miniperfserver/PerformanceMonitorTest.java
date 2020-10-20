@@ -33,7 +33,7 @@ public class PerformanceMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mPerformanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000, null);
+        mPerformanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000);
 
         int pid = AndroidProcessUtils.getPid(mContext, TARGET_PACKAGE_NAME);
         assertTrue(pid != -1);

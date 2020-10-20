@@ -44,7 +44,7 @@ public class BatteryMonitorTest {
     public void collectTest() throws Exception {
         for (String source : mSources) {
             mBatteryMonitor = new BatteryMonitor(mContext, source);
-            Power power = mBatteryMonitor.collect(mContext, null, 0);
+            Power power = mBatteryMonitor.collect(mContext, null, 0,null);
             BatteryMonitor.dumpPower(power);
             Assert.assertNotNull(power);
         }

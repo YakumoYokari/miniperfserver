@@ -33,7 +33,7 @@ public class CpuTemperatureMonitorTest {
 
     @Test
     public void collectTest() throws Exception {
-        Temp temp = mCpuTemperatureMonitor.collect(mContext, null, 0);
+        Temp temp = mCpuTemperatureMonitor.collect(mContext, null, 0,null);
         Assert.assertNotEquals(0, temp.getTemp());
     }
 }

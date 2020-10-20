@@ -30,7 +30,7 @@ public class GpuMonitorTest {
 
     @Test
     public void collectTest() throws Exception {
-        GpuInfo gpuInfo = mGpuMonitor.collect(null, null, 0);
+        GpuInfo gpuInfo = mGpuMonitor.collect(null, null, 0,null);
         Assert.assertNotNull(gpuInfo);
         Log.v(TAG, GpuMonitor.dumpGpuInfo(gpuInfo));
     }
