@@ -1,10 +1,11 @@
 package com.github.sandin.miniperfserver;
 
+import android.util.Log;
+
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
 import com.github.sandin.miniperfserver.proto.AppInfo;
 import com.github.sandin.miniperfserver.proto.GetAppInfoReq;
-import com.github.sandin.miniperfserver.proto.GetAppInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageReq;
@@ -12,6 +13,10 @@ import com.github.sandin.miniperfserver.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperfserver.proto.Memory;
 import com.github.sandin.miniperfserver.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperfserver.proto.Power;
+import com.github.sandin.miniperfserver.proto.ProfileApp;
+import com.github.sandin.miniperfserver.proto.ProfileAppInfo;
+import com.github.sandin.miniperfserver.proto.ProfileNtf;
+import com.github.sandin.miniperfserver.proto.ProfileReq;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -29,6 +34,7 @@ public class SocketServerUnitTest {
 
     private static final String HOST = "127.0.0.1";
     private static final int PORT = 6100;
+    private static final String TAG = "SocketTest";
 
     private SocketClient mClient;
 
@@ -79,7 +85,7 @@ public class SocketServerUnitTest {
         Assert.assertNotNull(rsp);
         Power power = rsp.getPower();
         Assert.assertNotNull(power);
-        System.out.println("power"+ BatteryMonitor.dumpPower(power));
+        System.out.println("power" + BatteryMonitor.dumpPower(power));
     }
 
     @Test
@@ -92,6 +98,27 @@ public class SocketServerUnitTest {
         System.out.println("recv response: " + response);
         List<AppInfo> appInfoList = response.getGetAppInfoRsp().getAppInfoList();
         Assert.assertNotNull(appInfoList);
+    }
+
+    @Test
+    public void profileReqTest() throws IOException {
+        String packageName = "com.tencent.mobileqq";
+        int pid = 5205;
+        String processName = packageName;
+        ProfileApp.Builder app = ProfileApp.newBuilder()
+                .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid));
+        MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder()
+                .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)).build();
+        System.out.println("send request: " + request);
+        mClient.sendMessage(request.toByteArray());
+        while (true) {
+            byte[] bytes = mClient.readMessage();
+            MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(bytes);
+            System.out.println("recv response: " + response);
+            ProfileNtf profileNtf = response.getProfileNtf();
+            Assert.assertNotNull(profileNtf);
+            System.out.println(profileNtf.toString());
+        }
     }
 
 }
