@@ -81,7 +81,7 @@ public class SocketServer {
          * @param msg request message
          * @return response message
          */
-        byte[] onMessage(byte[] msg);
+        byte[] onMessage(ClientConnection clientConnection, byte[] msg);
 
     }
 
@@ -301,7 +301,7 @@ public class SocketServer {
     /**
      * Client Connection
      */
-    private static class ClientConnection implements Runnable {
+    public static class ClientConnection implements Runnable {
 
         @Nullable
         private LocalSocket mLocalSocket;
@@ -374,7 +374,7 @@ public class SocketServer {
             while (true) {
                 try {
                     byte[] request = readMessage(); // block op
-                    byte[] response = handleRequestMessage(request);
+                    byte[] response = handleRequestMessage(this, request);
                     if (response != null) {
                         sendMessage(response);
                     }
@@ -439,7 +439,7 @@ public class SocketServer {
          *
          * @param message message
          */
-        private void sendMessage(@NonNull byte[] message) throws IOException {
+        public void sendMessage(@NonNull byte[] message) throws IOException {
             Log.v(TAG, "send raw message, length=" + message.length);
             mSocketOutputStream.writeInt(message.length);
             mSocketOutputStream.write(message);
@@ -452,7 +452,7 @@ public class SocketServer {
          * @param request request message
          * @return response message
          */
-        private byte[] handleRequestMessage(@NonNull byte[] request) {
+        private byte[] handleRequestMessage(@NonNull ClientConnection clientConnection, @NonNull byte[] request) {
             if (request.length == 4
                     && request[0] == 'p'
                     && request[1] == 'i'
@@ -463,7 +463,7 @@ public class SocketServer {
             }
 
             if (mCallback != null) {
-                return mCallback.onMessage(request);
+                return mCallback.onMessage(clientConnection, request);
             }
             return null;
         }

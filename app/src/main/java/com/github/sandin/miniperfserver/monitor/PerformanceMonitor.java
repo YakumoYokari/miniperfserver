@@ -4,13 +4,14 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.ProfileNtf;
+import com.github.sandin.miniperfserver.proto.ProfileReq;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import androidx.annotation.Nullable;
 
 /**
  * The Performance Monitor
@@ -18,10 +19,26 @@ import java.util.List;
 public class PerformanceMonitor {
     private static final String TAG = "PerformanceMonitor";
 
+    /**
+     * The callback of monitor
+     */
+    public interface Callback {
+
+        /**
+         * On new data update
+         *
+         * @param data the new data
+         */
+        void onUpdate(ProfileNtf data);
+
+    }
+
     private final Context mContext;
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
     private final List<IMonitor> mMonitors = new ArrayList<>();
+
+    private List<Callback> mCallback = new ArrayList<>();
 
     @Nullable
     private Thread mThread;
@@ -48,6 +65,35 @@ public class PerformanceMonitor {
     }
 
     /**
+     * Register a data callback
+     *
+     * @param callback callback
+     */
+    public void registerCallback(Callback callback) {
+        mCallback.add(callback);
+    }
+
+    /**
+     * Unregister a data callback
+     *
+     * @param callback callback
+     */
+    public void unregisterCallback(Callback callback) {
+        mCallback.remove(callback);
+    }
+
+    /**
+     * Notify all callbacks
+     *
+     * @param data the new data
+     */
+    private void notifyCallbacks(ProfileNtf data) {
+        for (Callback callback : mCallback) {
+            callback.onUpdate(data);
+        }
+    }
+
+    /**
      * Register a monitor
      *
      * @param monitor monitor
@@ -65,20 +111,49 @@ public class PerformanceMonitor {
         mMonitors.remove(monitor);
     }
 
-    public void start(TargetApp targetApp) {
+    /**
+     * Start profile a app
+     *
+     * @param context context
+     * @param targetApp target app
+     * @param dataTypes profile data types
+     * @return success/fail
+     */
+    public boolean start(Context context, TargetApp targetApp,  List<ProfileReq.DataType> dataTypes) {
         if (mIsRunning) {
             Log.w(TAG, "server has already been started!");
-            return;
+            return false;
         }
         mTargetApp = targetApp;
         mIsRunning = true;
+
+        for (ProfileReq.DataType dataType : dataTypes) {
+            switch (dataType.name()) {
+                case "FPS":
+                    registerMonitor(new FpsMonitor());
+                    break;
+                case "MEMORY":
+                    registerMonitor(new MemoryMonitor(context));
+                    break;
+                case "BATTERY":
+                    registerMonitor(new BatteryMonitor(context, null));
+                    break;
+                case "CPU_TEMPERATURE":
+                    registerMonitor(new CpuTemperatureMonitor());
+                    break;
+            }
+        }
+
         mThread = new Thread(new MonitorWorker());
         mThread.start();
+        return true;
     }
 
     public void stop() {
         if (mIsRunning) {
             mIsRunning = false;
+
+            // TODO: unregisterMonitors
 
             if (mThread != null) {
                 try {
@@ -113,7 +188,8 @@ public class PerformanceMonitor {
             while (mIsRunning) {
                 long startTime = SystemClock.uptimeMillis();
                 ProfileNtf collectData = collectData(startTime - mFirstTime);
-                //TODO send data
+                notifyCallbacks(collectData); // send data
+
                 mTickCount++;
                 long costTime = SystemClock.uptimeMillis() - startTime;
                 long sleepTime = mIntervalMs - costTime - 2;  // | costTime | sleepTime |

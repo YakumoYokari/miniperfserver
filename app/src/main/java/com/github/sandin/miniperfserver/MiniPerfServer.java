@@ -4,16 +4,11 @@ import android.content.Context;
 import android.os.Looper;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-
 import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.AppListMonitor;
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
-import com.github.sandin.miniperfserver.monitor.CpuTemperatureMonitor;
-import com.github.sandin.miniperfserver.monitor.FpsMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
 import com.github.sandin.miniperfserver.monitor.PerformanceMonitor;
 import com.github.sandin.miniperfserver.monitor.ScreenshotMonitor;
@@ -27,10 +22,16 @@ import com.github.sandin.miniperfserver.proto.Memory;
 import com.github.sandin.miniperfserver.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperfserver.proto.Power;
 import com.github.sandin.miniperfserver.proto.ProfileReq;
+import com.github.sandin.miniperfserver.proto.ProfileRsp;
 import com.github.sandin.miniperfserver.server.SocketServer;
+import com.github.sandin.miniperfserver.session.Session;
+import com.github.sandin.miniperfserver.session.SessionManager;
 import com.github.sandin.miniperfserver.util.ArgumentParser;
 
 import java.util.List;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * MiniPerfServer
@@ -117,55 +118,52 @@ public class MiniPerfServer implements SocketServer.Callback {
     }
 
     @Override
-    public byte[] onMessage(byte[] msg) {
+    public byte[] onMessage(SocketServer.ClientConnection clientConnection, byte[] msg) {
         try {
             MiniPerfServerProtocol request = MiniPerfServerProtocol.parseFrom(msg);
-            return handleRequestMessage(request);
+            return handleRequestMessage(clientConnection, request);
         } catch (Throwable e) {
             e.printStackTrace();
         }
         return null;
     }
 
-    private byte[] handleRequestMessage(MiniPerfServerProtocol request) {
-        // TODO: other requests
+    private byte[] handleRequestMessage(SocketServer.ClientConnection clientConnection, MiniPerfServerProtocol request) {
         switch (request.getProtocolCase()) {
             case PROFILEREQ:
-                handleProfileReq(request.getProfileReq());
-                break;
+                return handleProfileReq(clientConnection, request.getProfileReq());
             case GETMEMORYUSAGEREQ:
                 return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
             case GETBATTERYINFOREQ:
                 return handleGetBatteryInfoReq(request.getGetBatteryInfoReq());
             case GETAPPINFOREQ:
                 return handleGetAppInfoReq();
+            // TODO: other requests
         }
         return null;
     }
 
-    private void handleProfileReq(ProfileReq request) {
+    private byte[] handleProfileReq(SocketServer.ClientConnection clientConnection, ProfileReq request) {
         TargetApp targetApp = new TargetApp();
         targetApp.setPackageName(request.getProfileApp().getAppInfo().getPackageName());
         targetApp.setPid(request.getProfileApp().getPidName().getPid());
-        List<ProfileReq.DataType> dataTypesList = request.getDataTypesList();
-        PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000);
-        for (ProfileReq.DataType dataType : dataTypesList) {
-            switch (dataType.name()) {
-                case "FPS":
-                    performanceMonitor.registerMonitor(new FpsMonitor());
-                    break;
-                case "MEMORY":
-                    performanceMonitor.registerMonitor(new MemoryMonitor(mContext));
-                    break;
-                case "BATTERY":
-                    performanceMonitor.registerMonitor(new BatteryMonitor(mContext, null));
-                    break;
-                case "CPU_TEMPERATURE":
-                    performanceMonitor.registerMonitor(new CpuTemperatureMonitor());
-                    break;
-            }
+        List<ProfileReq.DataType> dataTypes = request.getDataTypesList();
+
+        int errorCode = 0;
+        int sessionId = 0;
+        PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
+        Session session = SessionManager.getInstance().createSession(mContext, clientConnection, performanceMonitor, targetApp, dataTypes);
+        if (session != null) {
+            sessionId = session.getSessionId();
+        } else {
+            errorCode = -1; // TODO: errorCode enum
         }
-        performanceMonitor.start(targetApp);
+        return MiniPerfServerProtocol.newBuilder().setProfileRsp(
+                ProfileRsp.newBuilder()
+                        .setTimestamp(System.currentTimeMillis())
+                        .setErrorCode(errorCode)
+                        .setSessionId(sessionId)
+        ).build().toByteArray();
     }
 
     private byte[] handleGetMemoryUsageReq(GetMemoryUsageReq request) {
