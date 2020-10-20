@@ -114,7 +114,7 @@ public class PerformanceMonitor {
      * @param dataTypes profile data types
      * @return success/fail
      */
-    public boolean start(TargetApp targetApp,  List<ProfileReq.DataType> dataTypes) {
+    public boolean start(TargetApp targetApp, List<ProfileReq.DataType> dataTypes) {
         if (mIsRunning) {
             Log.w(TAG, "server has already been started!");
             return false;

@@ -1,10 +1,8 @@
 package com.github.sandin.miniperfserver;
 
-import android.content.Context;
 import android.os.Looper;
 import android.util.Log;
 
-import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.AppListMonitor;
@@ -30,7 +28,6 @@ import com.github.sandin.miniperfserver.util.ArgumentParser;
 
 import java.util.List;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
@@ -86,11 +83,13 @@ public class MiniPerfServer implements SocketServer.Callback {
             return;
         }
 
+        /*
         Context context = ActivityThread.systemMain().getSystemContext();
         if (context == null) {
             Log.e(TAG, "Can not get system context!");
             return;
         }
+         */
         MiniPerfServer app = new MiniPerfServer();
         app.run(arguments);
     }

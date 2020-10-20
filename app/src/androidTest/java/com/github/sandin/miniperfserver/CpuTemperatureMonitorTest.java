@@ -1,9 +1,6 @@
 package com.github.sandin.miniperfserver;
 
 import android.content.Context;
-import android.net.TrafficStats;
-
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.github.sandin.miniperfserver.monitor.CpuTemperatureMonitor;
 import com.github.sandin.miniperfserver.proto.Temp;
@@ -14,6 +11,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import androidx.test.platform.app.InstrumentationRegistry;
 
 @RunWith(JUnit4.class)
 public class CpuTemperatureMonitorTest {
@@ -33,7 +32,7 @@ public class CpuTemperatureMonitorTest {
 
     @Test
     public void collectTest() throws Exception {
-        Temp temp = mCpuTemperatureMonitor.collect(mContext, null, 0,null);
+        Temp temp = mCpuTemperatureMonitor.collect(null, 0,null);
         Assert.assertNotEquals(0, temp.getTemp());
     }
 }

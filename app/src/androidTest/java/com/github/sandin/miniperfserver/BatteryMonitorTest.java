@@ -3,9 +3,6 @@ package com.github.sandin.miniperfserver;
 
 import android.content.Context;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
-
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.proto.Power;
 
@@ -15,7 +12,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.io.IOException;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 @RunWith(AndroidJUnit4.class)
 public class BatteryMonitorTest {
@@ -27,7 +25,7 @@ public class BatteryMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mBatteryMonitor = new BatteryMonitor(mContext, null);
+        mBatteryMonitor = new BatteryMonitor(null);
     }
 
     @After
@@ -43,8 +41,8 @@ public class BatteryMonitorTest {
     @Test
     public void collectTest() throws Exception {
         for (String source : mSources) {
-            mBatteryMonitor = new BatteryMonitor(mContext, source);
-            Power power = mBatteryMonitor.collect(mContext, null, 0,null);
+            mBatteryMonitor = new BatteryMonitor(source);
+            Power power = mBatteryMonitor.collect(null, 0,null);
             BatteryMonitor.dumpPower(power);
             Assert.assertNotNull(power);
         }

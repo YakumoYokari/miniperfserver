@@ -30,12 +30,12 @@ public final class AndroidProcessUtils {
 
     /**
      * get application's pid
-     * @param context
+     *
      * @param packageName
      * @return use application's package name to get pid
      */
-    public static int getPid(Context context, String packageName) {
-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+    public static int getPid(String packageName) {
+        ActivityManager am = (ActivityManager) ServiceManager.getService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> pids = am.getRunningAppProcesses();
         int pid = -1;
         if (pids != null) {

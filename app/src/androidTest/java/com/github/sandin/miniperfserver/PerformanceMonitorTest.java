@@ -2,18 +2,21 @@ package com.github.sandin.miniperfserver;
 
 import android.content.Context;
 
-import androidx.test.espresso.core.internal.deps.guava.base.Predicate;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
-
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.PerformanceMonitor;
+import com.github.sandin.miniperfserver.proto.ProfileReq;
 import com.github.sandin.miniperfserver.util.AndroidProcessUtils;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import static org.junit.Assert.assertTrue;
 
@@ -33,9 +36,9 @@ public class PerformanceMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mPerformanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000);
+        mPerformanceMonitor = new PerformanceMonitor(1000, 2 * 1000);
 
-        int pid = AndroidProcessUtils.getPid(mContext, TARGET_PACKAGE_NAME);
+        int pid = AndroidProcessUtils.getPid(TARGET_PACKAGE_NAME);
         assertTrue(pid != -1);
         mTargetApp = new TargetApp(TARGET_PACKAGE_NAME, pid);
     }
@@ -47,7 +50,8 @@ public class PerformanceMonitorTest {
 
     @Test
     public void start() throws InterruptedException {
-        mPerformanceMonitor.start(mTargetApp);
+        List<ProfileReq.DataType> dataTypes = new ArrayList<>(); // TODO
+        mPerformanceMonitor.start(mTargetApp, dataTypes);
 
         Thread.sleep(10 * 1000);
 

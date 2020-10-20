@@ -1,6 +1,5 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.Log;
 
@@ -22,7 +21,7 @@ public class ScreenshotMonitor implements IMonitor<Screenshot> {
     private static final String TAG = "ScreenshotMonitor";
 
     @Override
-    public Screenshot collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public Screenshot collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Screenshot.Builder builder = Screenshot.newBuilder();
         Screenshot screenshot = builder.build();
         data.setScreenshot(screenshot);

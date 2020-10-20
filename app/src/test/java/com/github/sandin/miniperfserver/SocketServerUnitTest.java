@@ -4,7 +4,6 @@ import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
 import com.github.sandin.miniperfserver.proto.AppInfo;
 import com.github.sandin.miniperfserver.proto.GetAppInfoReq;
-import com.github.sandin.miniperfserver.proto.GetAppInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperfserver.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperfserver.proto.GetMemoryUsageReq;
@@ -28,7 +27,7 @@ import java.util.List;
 public class SocketServerUnitTest {
 
     private static final String HOST = "127.0.0.1";
-    private static final int PORT = 6100;
+    private static final int PORT = 45455;
 
     private SocketClient mClient;
 

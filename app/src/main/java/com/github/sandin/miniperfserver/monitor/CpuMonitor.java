@@ -1,7 +1,5 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.content.Context;
-
 import com.github.sandin.miniperfserver.bean.CpuInfo;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.CpuUsage;
@@ -15,7 +13,6 @@ import java.util.Scanner;
 public class CpuMonitor implements IMonitor<CpuInfo> {
 
     private CPUStat stat;
-    private Context mContext;
 
     @Override
     public CpuInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
@@ -39,7 +36,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
 //    }
 
     private void cpu_fetch_loop(String packageName) throws FileNotFoundException, InterruptedException {
-        int pid = AndroidProcessUtils.getPid(mContext, packageName);
+        int pid = AndroidProcessUtils.getPid(packageName);
 
         stat = new CPUStat(pid);
         while (true) {

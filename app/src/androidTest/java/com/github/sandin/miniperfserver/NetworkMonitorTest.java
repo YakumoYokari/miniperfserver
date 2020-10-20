@@ -2,8 +2,6 @@ package com.github.sandin.miniperfserver;
 
 import android.content.Context;
 
-import androidx.test.platform.app.InstrumentationRegistry;
-
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.NetworkMonitor;
 import com.github.sandin.miniperfserver.util.AndroidProcessUtils;
@@ -13,6 +11,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import androidx.test.platform.app.InstrumentationRegistry;
 
 @RunWith(JUnit4.class)
 public class NetworkMonitorTest {
@@ -27,8 +27,8 @@ public class NetworkMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mUid = AndroidProcessUtils.getUid(mContext, PACKAGE_NAME);
-        mPid = AndroidProcessUtils.getPid(mContext, PACKAGE_NAME);
+        mUid = AndroidProcessUtils.getUid(PACKAGE_NAME);
+        mPid = AndroidProcessUtils.getPid(PACKAGE_NAME);
         mTargetApp = new TargetApp(PACKAGE_NAME, mPid);
         mNetworkMonitor = new NetworkMonitor(mContext);
     }
