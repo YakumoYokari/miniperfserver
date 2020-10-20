@@ -5,6 +5,7 @@ import android.content.Context;
 import android.os.Debug;
 import android.util.Log;
 
+import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.Memory;
 import com.github.sandin.miniperfserver.proto.MemoryDetail;
@@ -22,11 +23,11 @@ public class MemoryMonitor implements IMonitor<Memory> {
 
     private final ActivityManager mActivityManager;
 
-    public MemoryMonitor(Context context) {
-        mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+    public MemoryMonitor() {
+        mActivityManager = (ActivityManager) ServiceManager.getService(Context.ACTIVITY_SERVICE);
     }
 
-    public Memory collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public Memory collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect memory data: " + targetApp + ", timestamp=" + timestamp);
         Memory.Builder memoryBuilder = Memory.newBuilder();
         MemoryDetail.Builder memoryDetailBuilder = MemoryDetail.newBuilder();

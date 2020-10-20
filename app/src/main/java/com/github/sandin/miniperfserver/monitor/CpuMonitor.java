@@ -18,7 +18,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
     private Context mContext;
 
     @Override
-    public CpuInfo collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public CpuInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         CpuInfo cpuInfo = new CpuInfo();
         cpu_fetch_loop(targetApp.getPackageName());
         if (stat.allow_normalization) {

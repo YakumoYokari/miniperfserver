@@ -1,9 +1,6 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.content.Context;
 import android.util.Log;
-
-import androidx.annotation.NonNull;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.FPS;
@@ -14,6 +11,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+
+import androidx.annotation.NonNull;
 
 public class FpsMonitor implements IMonitor<FPS> {
 
@@ -59,7 +58,7 @@ public class FpsMonitor implements IMonitor<FPS> {
     }
 
     @Override
-    public FPS collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public FPS collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         FPS.Builder builder = FPS.newBuilder();
         boolean hasLayerName = getLayerName(targetApp.getPackageName());
         if (hasLayerName) {

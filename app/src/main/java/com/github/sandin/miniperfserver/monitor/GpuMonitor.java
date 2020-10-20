@@ -1,6 +1,5 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.github.sandin.miniperfserver.bean.GpuInfo;
@@ -61,7 +60,7 @@ public class GpuMonitor implements IMonitor<GpuInfo> {
     }
 
     @Override
-    public GpuInfo collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public GpuInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect gpu data: timestamp=" + timestamp);
         GpuInfo gpuInfo = new GpuInfo();
         gpuInfo.setGpuUsage(GpuUsage.newBuilder().setGpuUsage(getGpuUsage()).build());

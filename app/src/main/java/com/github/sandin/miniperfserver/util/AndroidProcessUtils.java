@@ -1,10 +1,11 @@
 package com.github.sandin.miniperfserver.util;
 
-import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.telephony.TelephonyManager;
+
+import com.genymobile.scrcpy.wrappers.ServiceManager;
 
 import java.util.List;
 
@@ -50,13 +51,13 @@ public final class AndroidProcessUtils {
 
     /**
      * get application's uid
-     * @param context
+     *
      * @param packageName
      * @return
      */
-    public static int getUid(Context context, String packageName) {
+    public static int getUid(String packageName) {
         try {
-            return context.getPackageManager().getApplicationInfo(packageName, 0).uid;
+            return ((PackageManager)ServiceManager.getService("package")).getApplicationInfo(packageName, 0).uid;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }

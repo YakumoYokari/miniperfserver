@@ -1,7 +1,5 @@
 package com.github.sandin.miniperfserver.session;
 
-import android.content.Context;
-
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.monitor.PerformanceMonitor;
 import com.github.sandin.miniperfserver.proto.ProfileNtf;
@@ -44,11 +42,10 @@ public final class Session implements PerformanceMonitor.Callback {
      *
      * @return success/fail
      */
-    public boolean start(@NonNull Context context,
-                         @NonNull TargetApp targetApp,
+    public boolean start(@NonNull TargetApp targetApp,
                          @NonNull List<ProfileReq.DataType> dataTypes) {
         mMonitor.registerCallback(this);
-        return mMonitor.start(context, targetApp, dataTypes);
+        return mMonitor.start(targetApp, dataTypes);
     }
 
     /**

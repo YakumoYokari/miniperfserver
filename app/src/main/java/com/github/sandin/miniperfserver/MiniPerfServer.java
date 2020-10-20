@@ -44,9 +44,6 @@ public class MiniPerfServer implements SocketServer.Callback {
      */
     private static final String UNIX_DOMAIN_SOCKET_NAME = "miniperfserver";
 
-    @NonNull
-    private final Context mContext;
-
     @Nullable
     private MemoryMonitor mMemoryMonitor;
 
@@ -56,8 +53,7 @@ public class MiniPerfServer implements SocketServer.Callback {
     @Nullable
     private AppListMonitor mAppListMonitor;
 
-    private MiniPerfServer(@NonNull Context context) {
-        mContext = context;
+    private MiniPerfServer() {
     }
 
     /**
@@ -95,7 +91,7 @@ public class MiniPerfServer implements SocketServer.Callback {
             Log.e(TAG, "Can not get system context!");
             return;
         }
-        MiniPerfServer app = new MiniPerfServer(context);
+        MiniPerfServer app = new MiniPerfServer();
         app.run(arguments);
     }
 
@@ -113,7 +109,7 @@ public class MiniPerfServer implements SocketServer.Callback {
     }
 
     public void run(ArgumentParser.Arguments arguments) {
-        SocketServer server = new SocketServer(mContext, UNIX_DOMAIN_SOCKET_NAME, this);
+        SocketServer server = new SocketServer(UNIX_DOMAIN_SOCKET_NAME, this);
         server.start();
     }
 
@@ -151,8 +147,8 @@ public class MiniPerfServer implements SocketServer.Callback {
 
         int errorCode = 0;
         int sessionId = 0;
-        PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
-        Session session = SessionManager.getInstance().createSession(mContext, clientConnection, performanceMonitor, targetApp, dataTypes);
+        PerformanceMonitor performanceMonitor = new PerformanceMonitor(1000, 2000);
+        Session session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
         if (session != null) {
             sessionId = session.getSessionId();
         } else {
@@ -168,10 +164,10 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleGetMemoryUsageReq(GetMemoryUsageReq request) {
         if (mMemoryMonitor == null) {
-            mMemoryMonitor = new MemoryMonitor(mContext);
+            mMemoryMonitor = new MemoryMonitor();
         }
         try {
-            Memory memory = mMemoryMonitor.collect(mContext, new TargetApp(null, request.getPid()), 0, null);
+            Memory memory = mMemoryMonitor.collect(new TargetApp(null, request.getPid()), 0, null);
             return MiniPerfServerProtocol.newBuilder().setGetMemoryUsageRsp(GetMemoryUsageRsp.newBuilder().setMemory(memory)).build().toByteArray();
         } catch (Throwable e) {
             e.printStackTrace();
@@ -181,10 +177,10 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleGetBatteryInfoReq(GetBatteryInfoReq request) {
         if (mBatteryMonitor == null) {
-            mBatteryMonitor = new BatteryMonitor(mContext, null);
+            mBatteryMonitor = new BatteryMonitor(null);
         }
         try {
-            Power power = mBatteryMonitor.collect(mContext, null, 0, null);
+            Power power = mBatteryMonitor.collect(null, 0, null);
             return MiniPerfServerProtocol.newBuilder().setGetBatteryInfoRsp(GetBatteryInfoRsp.newBuilder().setPower(power)).build().toByteArray();
         } catch (Exception e) {
             e.printStackTrace();
@@ -194,10 +190,10 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleGetAppInfoReq() {
         if (mAppListMonitor == null) {
-            mAppListMonitor = new AppListMonitor(mContext);
+            mAppListMonitor = new AppListMonitor();
         }
         try {
-            List<AppInfo> appInfoList = mAppListMonitor.collect(mContext, null, 0, null);
+            List<AppInfo> appInfoList = mAppListMonitor.collect(null, 0, null);
             return MiniPerfServerProtocol.newBuilder().setGetAppInfoRsp(GetAppInfoRsp.newBuilder().addAllAppInfo(appInfoList)).build().toByteArray();
         } catch (Exception e) {
             e.printStackTrace();

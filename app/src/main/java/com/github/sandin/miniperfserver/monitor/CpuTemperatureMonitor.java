@@ -1,6 +1,5 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.content.Context;
 import android.util.Log;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
@@ -27,7 +26,7 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
     }
 
     @Override
-    public Temp collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public Temp collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect cpu temperature data: timestamp=" + timestamp);
         int cpuTemperature = getCpuTemperature();
         Log.v(TAG, ": cpuTemp " + cpuTemperature);

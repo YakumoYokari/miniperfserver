@@ -80,9 +80,9 @@ public class NetworkMonitor implements IMonitor<TrafficInfo> {
     }
 
     @Override
-    public TrafficInfo collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public TrafficInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect traffics data: timestamp=" + timestamp);
-        int uid = AndroidProcessUtils.getUid(context, targetApp.getPackageName());
+        int uid = AndroidProcessUtils.getUid(targetApp.getPackageName());
         TrafficInfo trafficInfo = getTraffics(uid);
         Log.v(TAG, dumpTraffics(trafficInfo));
         data.setNetwork(Network.newBuilder().setDownload((int) trafficInfo.getDownload()).setUpload((int) trafficInfo.getUpload()).build());

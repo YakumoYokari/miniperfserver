@@ -1,43 +1,28 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.annotation.SuppressLint;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.ActivityInfo;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.content.pm.ProviderInfo;
-import android.content.pm.ServiceInfo;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
 import android.util.Log;
 
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.proto.AppInfo;
 import com.github.sandin.miniperfserver.proto.ProfileNtf;
-import com.google.protobuf.ByteString;
 
-import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeSet;
 
 public class AppListMonitor implements IMonitor<List<AppInfo>> {
 
     private static final String TAG = "AppListMonitor";
-    private final PackageManager mPackageManager;
+    //FIXME: private final PackageManager mPackageManager;
 
-    public AppListMonitor(Context context) {
-        mPackageManager = context.getPackageManager();
+    public AppListMonitor() {
+        // FIXME: mPackageManager = context.getPackageManager();
     }
 
     @Override
-    public List<AppInfo> collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public List<AppInfo> collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect application list data: timestamp=" + timestamp);
         ArrayList<AppInfo> appInfoList = new ArrayList<>();
+        /*
         List<ApplicationInfo> installedApplications = mPackageManager.getInstalledApplications(0);
         Intent intent = new Intent("android.intent.action.MAIN", null);
         for (ApplicationInfo applicationInfo : installedApplications) {
@@ -147,6 +132,7 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
             AppInfo appInfo = appInfoBuilder.build();
             appInfoList.add(appInfo);
         }
+         */
         return appInfoList;
     }
 }

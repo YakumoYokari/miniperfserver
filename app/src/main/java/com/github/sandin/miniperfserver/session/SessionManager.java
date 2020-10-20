@@ -44,14 +44,13 @@ public class SessionManager {
      * @param monitor profile monitor
      * @return the new session
      */
-    public @Nullable Session createSession(@NonNull Context context,
-                                           @NonNull SocketServer.ClientConnection connection,
+    public @Nullable Session createSession(@NonNull SocketServer.ClientConnection connection,
                                            @NonNull PerformanceMonitor monitor,
                                            @NonNull TargetApp targetApp,
                                            @NonNull List<ProfileReq.DataType> dataTypes) {
         int sessionId = mSessionIdGenerator.getAndIncrement();
         Session session = new Session(sessionId, connection, monitor);
-        boolean success = session.start(context, targetApp, dataTypes);
+        boolean success = session.start(targetApp, dataTypes);
         if (success) {
             synchronized (mSessionsLock) {
                 mSessions.add(session);

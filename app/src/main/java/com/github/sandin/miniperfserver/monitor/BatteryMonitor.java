@@ -1,14 +1,11 @@
 package com.github.sandin.miniperfserver.monitor;
 
 import android.content.Context;
-import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
-
+import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.github.sandin.miniperfserver.bean.TargetApp;
 import com.github.sandin.miniperfserver.data.DataSource;
 import com.github.sandin.miniperfserver.proto.Power;
@@ -17,32 +14,30 @@ import com.github.sandin.miniperfserver.util.ReadSystemInfoUtils;
 
 import java.util.List;
 
+import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
+
 public class BatteryMonitor implements IMonitor<Power> {
 
     private static final String TAG = "BatteryMonitor";
     private final BatteryManager mBatteryManager;
     //collect data from server or dex or app, default use dex
     private String mSource;
-    private Context mContext;
 
     /**
      * Constructor
-     *
-     * @param context
      */
-    public BatteryMonitor(Context context) {
-        this.mBatteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
-        this.mContext = context;
+    public BatteryMonitor() {
+        this(null);
     }
 
     /**
      * Constructor
      *
-     * @param context system context
      * @param source  data source
      */
-    public BatteryMonitor(Context context, String source) {
-        this.mBatteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+    public BatteryMonitor(String source) {
+        this.mBatteryManager = (BatteryManager) ServiceManager.getService(Context.BATTERY_SERVICE);
         this.mSource = source;
     }
 
@@ -99,7 +94,7 @@ public class BatteryMonitor implements IMonitor<Power> {
     @VisibleForTesting
     private Power getPowerInfoFromApp() {
         int current = micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
-        int voltage = mContext.registerReceiver(null, new IntentFilter("android.intent.action.BATTERY_CHANGED")).getIntExtra("voltage", -1);
+        int voltage = 0; //FIXME: mContext.registerReceiver(null, new IntentFilter("android.intent.action.BATTERY_CHANGED")).getIntExtra("voltage", -1);
         return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
     }
 
@@ -112,7 +107,7 @@ public class BatteryMonitor implements IMonitor<Power> {
     }
 
     @Override
-    public Power collect(Context context, TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
+    public Power collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect battery data: timestamp=" + timestamp);
         if (Build.VERSION.SDK_INT < 21) {
             return Power.getDefaultInstance();

@@ -1,6 +1,5 @@
 package com.github.sandin.miniperfserver.server;
 
-import android.content.Context;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
@@ -92,12 +91,6 @@ public class SocketServer {
     private Callback mCallback;
 
     /**
-     * System Context
-     */
-    @NonNull
-    private final Context mContext;
-
-    /**
      * Unix domain socket server
      */
     @Nullable
@@ -155,11 +148,9 @@ public class SocketServer {
     /**
      * Create a unix domain socket server
      *
-     * @param context system context
      * @param socketName unix domain socket name
      */
-    public SocketServer(@NonNull Context context, @NonNull String socketName, @Nullable Callback messageHandler) {
-        mContext = context;
+    public SocketServer(@NonNull String socketName, @Nullable Callback messageHandler) {
         mSocketName = socketName;
         mSocketType = TYPE_LOCAL_SOCKET;
         mCallback = messageHandler;
@@ -168,11 +159,9 @@ public class SocketServer {
     /**
      * Create a normal socket server
      *
-     * @param context system context
      * @param socketPort socket port to listen
      */
-    public SocketServer(@NonNull Context context, int socketPort, @Nullable Callback messageHandler) {
-        mContext = context;
+    public SocketServer(int socketPort, @Nullable Callback messageHandler) {
         mSocketPort = socketPort;
         mSocketType = TYPE_NORMAL_SOCKET;
         mCallback = messageHandler;

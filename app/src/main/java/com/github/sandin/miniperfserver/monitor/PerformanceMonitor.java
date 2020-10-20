@@ -1,6 +1,5 @@
 package com.github.sandin.miniperfserver.monitor;
 
-import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -33,7 +32,6 @@ public class PerformanceMonitor {
 
     }
 
-    private final Context mContext;
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
     private final List<IMonitor> mMonitors = new ArrayList<>();
@@ -54,12 +52,10 @@ public class PerformanceMonitor {
     /**
      * Constructor
      *
-     * @param context              system context
      * @param intervalMs           interval time in ms
      * @param screenshotIntervalMs screenshot interval time in ms
      */
-    public PerformanceMonitor(Context context, int intervalMs, int screenshotIntervalMs) {
-        mContext = context;
+    public PerformanceMonitor(int intervalMs, int screenshotIntervalMs) {
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
     }
@@ -114,12 +110,11 @@ public class PerformanceMonitor {
     /**
      * Start profile a app
      *
-     * @param context context
      * @param targetApp target app
      * @param dataTypes profile data types
      * @return success/fail
      */
-    public boolean start(Context context, TargetApp targetApp,  List<ProfileReq.DataType> dataTypes) {
+    public boolean start(TargetApp targetApp,  List<ProfileReq.DataType> dataTypes) {
         if (mIsRunning) {
             Log.w(TAG, "server has already been started!");
             return false;
@@ -133,10 +128,10 @@ public class PerformanceMonitor {
                     registerMonitor(new FpsMonitor());
                     break;
                 case "MEMORY":
-                    registerMonitor(new MemoryMonitor(context));
+                    registerMonitor(new MemoryMonitor());
                     break;
                 case "BATTERY":
-                    registerMonitor(new BatteryMonitor(context, null));
+                    registerMonitor(new BatteryMonitor(null));
                     break;
                 case "CPU_TEMPERATURE":
                     registerMonitor(new CpuTemperatureMonitor());
@@ -169,7 +164,7 @@ public class PerformanceMonitor {
         ProfileNtf.Builder data = ProfileNtf.newBuilder();
         try {
             for (IMonitor<?> monitor : mMonitors) {
-                monitor.collect(mContext, mTargetApp, timestamp, data);
+                monitor.collect(mTargetApp, timestamp, data);
                 Log.v(TAG, "collect data: " + data);
             }
         } catch (Throwable e) {
