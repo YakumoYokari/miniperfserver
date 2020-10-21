@@ -1,6 +1,7 @@
 package com.genymobile.scrcpy.wrappers;
 
 import android.os.Binder;
+import android.os.Debug;
 import android.os.IBinder;
 import android.os.IInterface;
 
@@ -14,6 +15,7 @@ public class ActivityManager {
     private Method getContentProviderExternalMethod;
     private boolean getContentProviderExternalMethodLegacy;
     private Method removeContentProviderExternalMethod;
+    private Method getProcessMemoryInfoMethod;
 
     public ActivityManager(IInterface manager) {
         this.manager = manager;
@@ -83,4 +85,24 @@ public class ActivityManager {
         return getContentProviderExternal("settings", new Binder());
     }
 
+    private Method getGetProcessMemoryInfo() throws NoSuchMethodException {
+        if (getProcessMemoryInfoMethod == null) {
+            try {
+                getProcessMemoryInfoMethod = manager.getClass().getMethod("getProcessMemoryInfo", int[].class);
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            }
+        }
+        return getContentProviderExternalMethod;
+    }
+
+    public Debug.MemoryInfo[] getProcessMemoryInfo(int[] pids) {
+        try {
+            Method method = getGetProcessMemoryInfo();
+            return (Debug.MemoryInfo[]) method.invoke(manager, pids);
+        } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }
