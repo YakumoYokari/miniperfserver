@@ -15,6 +15,7 @@ import com.github.sandin.miniperf.server.proto.ProfileApp;
 import com.github.sandin.miniperf.server.proto.ProfileAppInfo;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,8 +101,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "com.tencent.mobileqq";
-        int pid = 5205;
+        String packageName = "tv.danmaku.bili";
+        int pid = 14976;
         String processName = packageName;
         ProfileApp.Builder app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid));

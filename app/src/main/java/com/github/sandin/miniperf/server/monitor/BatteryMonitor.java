@@ -67,13 +67,13 @@ public class BatteryMonitor implements IMonitor<Power> {
     @VisibleForTesting
     private int getVoltageFromDump() {
         int voltage = 0;
-        List<String> content = ReadSystemInfoUtils.readInfoFromDumpsys("battery");
-        if (content.size() > 0) {
-            for (String line : content) {
-                if (line.startsWith("voltage:"))
-                    voltage = Integer.parseInt(line.substring(8).trim());
-            }
-        }
+//        List<String> content = ReadSystemInfoUtils.readInfoFromDumpsys("battery");
+//        if (content.size() > 0) {
+//            for (String line : content) {
+//                if (line.startsWith("voltage:"))
+//                    voltage = Integer.parseInt(line.substring(8).trim());
+//            }
+//        }
         return voltage;
     }
 

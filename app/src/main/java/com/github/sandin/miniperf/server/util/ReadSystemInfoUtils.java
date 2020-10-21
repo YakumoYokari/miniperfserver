@@ -18,6 +18,7 @@ public class ReadSystemInfoUtils {
 
     /**
      * read system file info
+     *
      * @param systemFilePaths
      * @return system file info
      */
@@ -46,6 +47,7 @@ public class ReadSystemInfoUtils {
 
     /**
      * read system file info
+     *
      * @param systemFilePath
      * @return system file info
      */
@@ -53,7 +55,7 @@ public class ReadSystemInfoUtils {
         return readInfoFromSystemFile(new String[]{systemFilePath});
     }
 
-    public static List<String> readInfoFromDumpsys(String serviceName) {
+    public static List<String> readInfoFromDumpsys(String serviceName, String[] args) {
         IBinder service = ServiceManager.getService(serviceName);
         List<String> content = new LinkedList<>();
         if (service != null) {
@@ -62,7 +64,7 @@ public class ReadSystemInfoUtils {
             try {
                 //first read, second write
                 pipe = ParcelFileDescriptor.createPipe();
-                service.dump(pipe[1].getFileDescriptor(), new String[0]);
+                service.dump(pipe[1].getFileDescriptor(), args);
                 reader = new BufferedReader(new InputStreamReader(new ParcelFileDescriptor.AutoCloseInputStream(pipe[0])));
                 while (reader.ready()) {
                     content.add(reader.readLine().trim());
