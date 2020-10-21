@@ -28,9 +28,9 @@ public class FpsMonitorTest {
         mFpsMonitor = null;
     }
 
-    @Test
-    public void getLayerNameTest() throws IOException {
-        boolean hasLayerName = mFpsMonitor.getLayerName("tv.danmaku.bili");
-        Assert.assertNotEquals(false,hasLayerName);
-    }
+//    @Test
+//    public void getLayerNameTest() throws IOException {
+//        boolean hasLayerName = mFpsMonitor.getLayerName("tv.danmaku.bili");
+//        Assert.assertNotEquals(false,hasLayerName);
+//    }
 }
