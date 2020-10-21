@@ -1,7 +1,5 @@
 package com.github.sandin.miniperfserver;
 
-import android.util.Log;
-
 import com.github.sandin.miniperfserver.monitor.BatteryMonitor;
 import com.github.sandin.miniperfserver.monitor.MemoryMonitor;
 import com.github.sandin.miniperfserver.proto.AppInfo;
@@ -111,6 +109,10 @@ public class SocketServerUnitTest {
                 .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)).build();
         System.out.println("send request: " + request);
         mClient.sendMessage(request.toByteArray());
+        //ProfileRsp
+        byte[] profileRspBytes = mClient.readMessage();
+        MiniPerfServerProtocol profileRsp = MiniPerfServerProtocol.parseFrom(profileRspBytes);
+        System.out.println("recv response: " + profileRsp);
         while (true) {
             byte[] bytes = mClient.readMessage();
             MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(bytes);

@@ -26,6 +26,19 @@ public class SocketClient {
         mSocketOutputStream.write(message);
     }
 
+//    public byte[] readMessage() throws IOException {
+    //Bug
+//        byte[] len = new byte[4];
+//        while(mSocketInputStream.read(len)!=0);
+//        int length = 0;
+//        for(int i = 0; i < 4 ; i++){
+//            length += len[i] << i*8;
+//        }
+//        byte[] buffer = new byte[length];
+//        mSocketInputStream.read(buffer);
+//        return buffer;
+//    }
+
     public byte[] readMessage() throws IOException {
         int length = mSocketInputStream.readInt();
         byte[] buffer = new byte[length];
