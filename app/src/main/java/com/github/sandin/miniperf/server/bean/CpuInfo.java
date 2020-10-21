@@ -1,8 +1,8 @@
 package com.github.sandin.miniperf.server.bean;
 
-import com.github.sandin.server.proto.CoreUsage;
-import com.github.sandin.server.proto.CpuFreq;
-import com.github.sandin.server.proto.CpuUsage;
+import com.github.sandin.miniperf.server.proto.CoreUsage;
+import com.github.sandin.miniperf.server.proto.CpuFreq;
+import com.github.sandin.miniperf.server.proto.CpuUsage;
 
 public class CpuInfo {
     private CpuUsage cpuUsage;

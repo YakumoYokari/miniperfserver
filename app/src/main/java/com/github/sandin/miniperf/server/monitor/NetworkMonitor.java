@@ -12,8 +12,8 @@ import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.bean.TrafficInfo;
-import com.github.sandin.server.proto.Network;
-import com.github.sandin.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.Network;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 /**

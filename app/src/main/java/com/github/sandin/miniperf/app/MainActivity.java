@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.os.Bundle;
 
 import com.github.sandin.miniperf.server.MiniPerfServer;
-import com.github.sandin.server.R;
+import com.github.sandin.miniperf.server.R;
 
 public class MainActivity extends Activity {
 

@@ -1,7 +1,7 @@
 package com.github.sandin.miniperf.server.monitor;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
 
 /**
  * Interface of all monitor

@@ -245,8 +245,10 @@ public class SocketServer {
                             ClientConnection connection = it.next();
                             if (connection != null) {
                                 if (!connection.isConnected()) {
+                                    Log.w(TAG, "The connection is not connected, remove it from connection pool!");
                                     it.remove();
                                 } else if (connection.getIdleTime() > MAX_CONNECTION_IDLE_TIME_MS) {
+                                    Log.w(TAG, "The connection is no long activated, force close and remove it from connection pool!");
                                     connection.close();
                                     it.remove();
                                 }

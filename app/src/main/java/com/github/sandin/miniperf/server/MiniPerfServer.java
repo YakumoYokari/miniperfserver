@@ -12,26 +12,24 @@ import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.monitor.ScreenshotMonitor;
-import com.github.sandin.server.BuildConfig;
-import com.github.sandin.server.proto.AppInfo;
-import com.github.sandin.server.proto.GetAppInfoRsp;
-import com.github.sandin.server.proto.GetBatteryInfoReq;
-import com.github.sandin.server.proto.GetBatteryInfoRsp;
-import com.github.sandin.server.proto.GetMemoryUsageReq;
-import com.github.sandin.server.proto.GetMemoryUsageRsp;
-import com.github.sandin.server.proto.Memory;
-import com.github.sandin.server.proto.MiniPerfServerProtocol;
-import com.github.sandin.server.proto.Power;
-import com.github.sandin.server.proto.ProfileReq;
-import com.github.sandin.server.proto.ProfileRsp;
+import com.github.sandin.miniperf.server.proto.AppInfo;
+import com.github.sandin.miniperf.server.proto.GetAppInfoRsp;
+import com.github.sandin.miniperf.server.proto.GetBatteryInfoReq;
+import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
+import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
+import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
+import com.github.sandin.miniperf.server.proto.Memory;
+import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperf.server.server.SocketServer;
 import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
-
+import com.github.sandin.miniperf.server.proto.Power;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.ProfileRsp;
 import java.util.List;
-
 import androidx.annotation.Nullable;
+
 
 /**
  * MiniPerfServer

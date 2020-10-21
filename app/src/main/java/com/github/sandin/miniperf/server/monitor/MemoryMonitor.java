@@ -6,9 +6,9 @@ import android.util.Log;
 import com.genymobile.scrcpy.wrappers.ActivityManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.server.proto.Memory;
-import com.github.sandin.server.proto.MemoryDetail;
-import com.github.sandin.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.Memory;
+import com.github.sandin.miniperf.server.proto.MemoryDetail;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.ReflectionUtils;
 
 /**

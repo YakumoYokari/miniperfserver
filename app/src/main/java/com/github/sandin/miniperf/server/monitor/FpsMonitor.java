@@ -3,8 +3,8 @@ package com.github.sandin.miniperf.server.monitor;
 import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.server.proto.FPS;
-import com.github.sandin.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.FPS;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.AdbUtils;
 
 import java.io.IOException;

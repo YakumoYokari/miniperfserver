@@ -1,7 +1,7 @@
 package com.github.sandin.miniperf.server.bean;
 
-import com.github.sandin.server.proto.GpuFreq;
-import com.github.sandin.server.proto.GpuUsage;
+import com.github.sandin.miniperf.server.proto.GpuFreq;
+import com.github.sandin.miniperf.server.proto.GpuUsage;
 
 public class GpuInfo {
     private GpuUsage gpuUsage;

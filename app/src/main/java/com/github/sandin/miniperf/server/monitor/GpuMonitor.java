@@ -5,9 +5,9 @@ import android.util.Log;
 import com.github.sandin.miniperf.server.bean.GpuInfo;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
-import com.github.sandin.server.proto.GpuFreq;
-import com.github.sandin.server.proto.GpuUsage;
-import com.github.sandin.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.GpuFreq;
+import com.github.sandin.miniperf.server.proto.GpuUsage;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;

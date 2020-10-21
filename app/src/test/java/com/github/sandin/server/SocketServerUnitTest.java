@@ -2,19 +2,19 @@ package com.github.sandin.server;
 
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
-import com.github.sandin.server.proto.AppInfo;
-import com.github.sandin.server.proto.GetAppInfoReq;
-import com.github.sandin.server.proto.GetBatteryInfoReq;
-import com.github.sandin.server.proto.GetBatteryInfoRsp;
-import com.github.sandin.server.proto.GetMemoryUsageReq;
-import com.github.sandin.server.proto.GetMemoryUsageRsp;
-import com.github.sandin.server.proto.Memory;
-import com.github.sandin.server.proto.MiniPerfServerProtocol;
-import com.github.sandin.server.proto.Power;
-import com.github.sandin.server.proto.ProfileApp;
-import com.github.sandin.server.proto.ProfileAppInfo;
-import com.github.sandin.server.proto.ProfileNtf;
-import com.github.sandin.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.AppInfo;
+import com.github.sandin.miniperf.server.proto.GetAppInfoReq;
+import com.github.sandin.miniperf.server.proto.GetBatteryInfoReq;
+import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
+import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
+import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
+import com.github.sandin.miniperf.server.proto.Memory;
+import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperf.server.proto.Power;
+import com.github.sandin.miniperf.server.proto.ProfileApp;
+import com.github.sandin.miniperf.server.proto.ProfileAppInfo;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -111,6 +111,7 @@ public class SocketServerUnitTest {
         mClient.sendMessage(request.toByteArray());
         //ProfileRsp
         byte[] profileRspBytes = mClient.readMessage();
+        System.out.println("recv response bytes length: " + profileRspBytes.length);
         MiniPerfServerProtocol profileRsp = MiniPerfServerProtocol.parseFrom(profileRspBytes);
         System.out.println("recv response: " + profileRsp);
         while (true) {

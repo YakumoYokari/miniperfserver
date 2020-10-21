@@ -2,9 +2,9 @@ package com.github.sandin.miniperf.server.session;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
-import com.github.sandin.server.proto.MiniPerfServerProtocol;
-import com.github.sandin.server.proto.ProfileNtf;
-import com.github.sandin.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.server.SocketServer;
 
 import java.io.IOException;
@@ -71,7 +71,7 @@ public final class Session implements PerformanceMonitor.Callback {
             MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProfileNtf(data).build();
             mConnection.sendMessage(response.toByteArray());
         } catch (IOException e) {
-            e.printStackTrace(); // TODO:
+            e.printStackTrace(); // TODO: socket closed
         }
     }
 

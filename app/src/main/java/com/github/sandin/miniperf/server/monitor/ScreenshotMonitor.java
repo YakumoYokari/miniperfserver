@@ -9,8 +9,8 @@ import com.genymobile.scrcpy.wrappers.DisplayManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.genymobile.scrcpy.wrappers.SurfaceControl;
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.server.proto.ProfileNtf;
-import com.github.sandin.server.proto.Screenshot;
+import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.Screenshot;
 
 import java.io.OutputStream;
 

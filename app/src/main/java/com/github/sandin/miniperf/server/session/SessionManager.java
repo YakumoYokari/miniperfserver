@@ -4,7 +4,7 @@ import android.content.Context;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
-import com.github.sandin.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.server.SocketServer;
 
 import java.util.ArrayList;
