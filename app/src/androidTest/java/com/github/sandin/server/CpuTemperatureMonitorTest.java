@@ -3,7 +3,7 @@ package com.github.sandin.server;
 import android.content.Context;
 
 import com.github.sandin.miniperf.server.monitor.CpuTemperatureMonitor;
-import com.github.sandin.server.proto.Temp;
+import com.github.sandin.miniperf.server.proto.Temp;
 
 import org.junit.After;
 import org.junit.Assert;

@@ -4,7 +4,7 @@ package com.github.sandin.server;
 import android.content.Context;
 
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
-import com.github.sandin.server.proto.Power;
+import com.github.sandin.miniperf.server.proto.Power;
 
 import org.junit.After;
 import org.junit.Assert;
