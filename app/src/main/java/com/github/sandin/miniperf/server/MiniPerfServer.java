@@ -4,6 +4,8 @@ import android.content.Context;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -20,15 +22,15 @@ import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperf.server.proto.Power;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.ProfileRsp;
 import com.github.sandin.miniperf.server.server.SocketServer;
 import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
-import com.github.sandin.miniperf.server.proto.Power;
-import com.github.sandin.miniperf.server.proto.ProfileReq;
-import com.github.sandin.miniperf.server.proto.ProfileRsp;
+
 import java.util.List;
-import androidx.annotation.Nullable;
 
 
 /**
@@ -146,9 +148,10 @@ public class MiniPerfServer implements SocketServer.Callback {
     private byte[] handleProfileReq(SocketServer.ClientConnection clientConnection, ProfileReq request) {
         TargetApp targetApp = new TargetApp();
         targetApp.setPackageName(request.getProfileApp().getAppInfo().getPackageName());
-        targetApp.setPid(request.getProfileApp().getPidName().getPid());
+        //TODO userid is pid
+        targetApp.setPid(request.getProfileApp().getAppInfo().getUserId());
         List<ProfileReq.DataType> dataTypes = request.getDataTypesList();
-
+        Log.i(TAG, "recv profile data types : " + dataTypes.toString());
         int errorCode = 0;
         int sessionId = 0;
         PerformanceMonitor performanceMonitor = new PerformanceMonitor(1000, 2000);

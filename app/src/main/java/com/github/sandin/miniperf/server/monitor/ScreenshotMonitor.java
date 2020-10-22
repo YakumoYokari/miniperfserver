@@ -11,7 +11,9 @@ import com.genymobile.scrcpy.wrappers.SurfaceControl;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.Screenshot;
+import com.google.protobuf.ByteString;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 
 /**
@@ -23,8 +25,11 @@ public class ScreenshotMonitor implements IMonitor<Screenshot> {
     @Override
     public Screenshot collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Screenshot.Builder builder = Screenshot.newBuilder();
-        Screenshot screenshot = builder.build();
-        data.setScreenshot(screenshot);
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        takeScreenshot(byteArrayOutputStream);
+        Screenshot screenshot = builder.setData(ByteString.copyFrom(byteArrayOutputStream.toByteArray())).build();
+        if (data != null)
+            data.setScreenshot(screenshot);
         return screenshot;
     }
 
@@ -45,11 +50,11 @@ public class ScreenshotMonitor implements IMonitor<Screenshot> {
         start = System.nanoTime();
 
         //OutputStream outputStream = new BufferedOutputStream(new FileOutputStream("/data/local/tmp/test.jpg"));
-        //OutputStream outputStream = new ByteArrayOutputStream();
+        //OutputStream output = new ByteArrayOutputStream();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream);
         //outputStream.close();
         Log.i(TAG, "bitmap width: " + bitmap.getWidth() + ", height: " + bitmap.getHeight());
         Log.i(TAG, "screenshot to jpg file cost time: " + (System.nanoTime() - start));
     }
-
 }

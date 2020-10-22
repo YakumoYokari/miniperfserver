@@ -31,7 +31,8 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
         int cpuTemperature = getCpuTemperature();
         Log.v(TAG, ": cpuTemp " + cpuTemperature);
         Temp temp = Temp.newBuilder().setTemp(cpuTemperature).build();
-        data.setTemp(temp);
+        if (data != null)
+            data.setTemp(temp);
         return temp;
     }
 }

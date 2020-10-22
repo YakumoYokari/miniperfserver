@@ -123,22 +123,29 @@ public class PerformanceMonitor {
         mIsRunning = true;
 
         for (ProfileReq.DataType dataType : dataTypes) {
+            Log.i(TAG,"now data type is : "+dataType.name());
             switch (dataType.name()) {
                 case "FPS":
                     registerMonitor(new FpsMonitor());
+                    Log.i(TAG,"fps monitor register success");
                     break;
                 case "MEMORY":
                     registerMonitor(new MemoryMonitor());
+                    Log.i(TAG,"memory monitor register success");
                     break;
                 case "BATTERY":
                     registerMonitor(new BatteryMonitor(null));
+                    Log.i(TAG,"battery monitor register success");
                     break;
                 case "CPU_TEMPERATURE":
                     registerMonitor(new CpuTemperatureMonitor());
+                    Log.i(TAG,"cpu temperature monitor register success");
                     break;
+                case "SCREEN_SHOT":
+                    registerMonitor(new ScreenshotMonitor());
+                    Log.i(TAG,"screenshot temperature monitor register success");
             }
         }
-
         mThread = new Thread(new MonitorWorker());
         mThread.start();
         return true;

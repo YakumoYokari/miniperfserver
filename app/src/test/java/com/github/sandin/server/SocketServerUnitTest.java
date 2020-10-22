@@ -15,7 +15,6 @@ import com.github.sandin.miniperf.server.proto.ProfileApp;
 import com.github.sandin.miniperf.server.proto.ProfileAppInfo;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
-import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -102,12 +101,21 @@ public class SocketServerUnitTest {
     @Test
     public void profileReqTest() throws IOException {
         String packageName = "tv.danmaku.bili";
-        int pid = 14976;
+        int pid = 28040;
         String processName = packageName;
-        ProfileApp.Builder app = ProfileApp.newBuilder()
-                .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid));
+        ProfileApp app = ProfileApp.newBuilder()
+                .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))
+                .build();
+        System.out.println("profile app : " + app.toString());
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder()
-                .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)).build();
+                .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)
+                        .addDataTypes(ProfileReq.DataType.SCREEN_SHOT)
+                        .addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
+                        .addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
+                        .addDataTypes(ProfileReq.DataType.FPS)
+                        .addDataTypes(ProfileReq.DataType.MEMORY)
+                )
+                .build();
         System.out.println("send request: " + request);
         mClient.sendMessage(request.toByteArray());
         //ProfileRsp

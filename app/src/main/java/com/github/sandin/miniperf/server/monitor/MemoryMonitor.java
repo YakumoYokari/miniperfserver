@@ -26,19 +26,43 @@ public class MemoryMonitor implements IMonitor<Memory> {
         mActivityManager = new ServiceManager().getActivityManager();
     }
 
+    /**
+     * dump memoryInfo
+     *
+     * @param memory
+     * @return
+     */
+    public static final String dumpMemory(Memory memory) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("[Memory");
+        sb.append(", pss=").append(memory.getPss());
+        sb.append(", swap=").append(memory.getSwap());
+        sb.append(", virtualMemory=").append(memory.getVirtualMemory());
+        if (memory.getMemoryDetail() != null) {
+            sb.append(", memoryDetail.gl=").append(memory.getMemoryDetail().getGl());
+            sb.append(", memoryDetail.gfx=").append(memory.getMemoryDetail().getGfx());
+            sb.append(", memoryDetail.unknown=").append(memory.getMemoryDetail().getUnknown());
+            sb.append(", memoryDetail.nativePass=").append(memory.getMemoryDetail().getNativePss());
+        }
+        sb.append("]");
+        return sb.toString();
+    }
+
     public Memory collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect memory data: " + targetApp + ", timestamp=" + timestamp);
         Memory.Builder memoryBuilder = Memory.newBuilder();
         MemoryDetail.Builder memoryDetailBuilder = MemoryDetail.newBuilder();
-
-        Debug.MemoryInfo[] processMemoryInfo = mActivityManager.getProcessMemoryInfo(new int[]{ targetApp.getPid() });
+        Log.i(TAG,"collect process memory info");
+        //TODO can't get memory info
+        Debug.MemoryInfo[] processMemoryInfo = mActivityManager.getProcessMemoryInfo(new int[]{targetApp.getPid()});
+        Log.i(TAG, "process memory info size : " + processMemoryInfo.length);
         if (processMemoryInfo != null && processMemoryInfo.length > 0) {
             final Debug.MemoryInfo memoryInfo = processMemoryInfo[0];
 
             // memory
             memoryBuilder.setPss(memoryInfo.getTotalPss() / 1024);
             final Integer swap = ReflectionUtils.invokeMethod(memoryInfo.getClass(), "getTotalSwappedOut",
-                    new Class<?>[] {}, memoryInfo, new Object[] {}, true);
+                    new Class<?>[]{}, memoryInfo, new Object[]{}, true);
             memoryBuilder.setSwap(swap != null ? swap / 1024 : 0);
             //memoryBuilder.setVirtualMemory(virtualMemory); // TODO: virtualMemory
 
@@ -52,9 +76,9 @@ public class MemoryMonitor implements IMonitor<Memory> {
             if (otherStatsNum > 0) {
                 for (int i = 0; i < otherStatsNum; i++) {
                     final String otherLabel = ReflectionUtils.invokeMethod(memoryInfo.getClass(), "getOtherLabel",
-                            new Class<?>[] { Integer.TYPE }, memoryInfo, new Object[] { i }, true);
+                            new Class<?>[]{Integer.TYPE}, memoryInfo, new Object[]{i}, true);
                     final Integer otherPss = ReflectionUtils.invokeMethod(memoryInfo.getClass(), "getOtherPss",
-                            new Class<?>[] { Integer.TYPE }, memoryInfo, new Object[] { i }, true);
+                            new Class<?>[]{Integer.TYPE}, memoryInfo, new Object[]{i}, true);
                     Log.v(TAG, i + "/" + otherStatsNum + " otherLabel=" + otherLabel + ", otherPss=" + otherPss);
                     if (otherLabel != null && otherPss != null) {
                         unknownPss -= otherPss;
@@ -84,27 +108,9 @@ public class MemoryMonitor implements IMonitor<Memory> {
         memoryBuilder.setMemoryDetail(memoryDetailBuilder);
         Memory memory = memoryBuilder.build();
         Log.v(TAG, dumpMemory(memory));
-        return memory;
-    }
-
-    /**
-     * dump memoryInfo
-     * @param memory
-     * @return
-     */
-    public static final String dumpMemory(Memory memory) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[Memory");
-        sb.append(", pss=").append(memory.getPss());
-        sb.append(", swap=").append(memory.getSwap());
-        sb.append(", virtualMemory=").append(memory.getVirtualMemory());
-        if (memory.getMemoryDetail() != null) {
-            sb.append(", memoryDetail.gl=").append(memory.getMemoryDetail().getGl());
-            sb.append(", memoryDetail.gfx=").append(memory.getMemoryDetail().getGfx());
-            sb.append(", memoryDetail.unknown=").append(memory.getMemoryDetail().getUnknown());
-            sb.append(", memoryDetail.nativePass=").append(memory.getMemoryDetail().getNativePss());
+        if (data != null) {
+            data.setMemory(memory);
         }
-        sb.append("]");
-        return sb.toString();
+        return memory;
     }
 }
