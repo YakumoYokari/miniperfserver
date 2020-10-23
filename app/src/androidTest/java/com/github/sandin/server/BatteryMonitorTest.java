@@ -2,6 +2,7 @@ package com.github.sandin.server;
 
 
 import android.content.Context;
+import android.os.BatteryManager;
 
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.proto.Power;
@@ -46,6 +47,13 @@ public class BatteryMonitorTest {
             BatteryMonitor.dumpPower(power);
             Assert.assertNotNull(power);
         }
+    }
+
+    @Test
+    public void collectByContextTest(){
+        BatteryManager batteryManager = (BatteryManager) mContext.getSystemService(Context.BATTERY_SERVICE);
+        int intProperty = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+        Assert.assertNotNull(intProperty);
     }
 
 }

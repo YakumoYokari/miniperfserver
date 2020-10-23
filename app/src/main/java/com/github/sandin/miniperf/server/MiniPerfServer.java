@@ -15,8 +15,8 @@ import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.monitor.ScreenshotMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
+import com.github.sandin.miniperf.server.proto.EmptyRsp;
 import com.github.sandin.miniperf.server.proto.GetAppInfoRsp;
-import com.github.sandin.miniperf.server.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
@@ -25,9 +25,12 @@ import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.ProfileRsp;
+import com.github.sandin.miniperf.server.proto.StopProfileRsp;
+import com.github.sandin.miniperf.server.proto.ToggleInterestingFiledNTF;
 import com.github.sandin.miniperf.server.server.SocketServer;
 import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
+import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
 
 import java.util.List;
@@ -47,11 +50,16 @@ public class MiniPerfServer implements SocketServer.Callback {
     @Nullable
     private MemoryMonitor mMemoryMonitor;
 
+    //TODO 先用context 后续修改
+    public static Context context;
+
     @Nullable
     private BatteryMonitor mBatteryMonitor;
 
     @Nullable
     private AppListMonitor mAppListMonitor;
+
+    private Session session;
 
     private MiniPerfServer() {
     }
@@ -79,6 +87,9 @@ public class MiniPerfServer implements SocketServer.Callback {
         if (!isApp) {
             Looper.prepareMainLooper();
             Process.setArgV0("MiniPerfServer");
+
+            //TODO use context
+            context = ActivityThread.systemMain().getSystemContext();
 
             // ONLY FOR TEST
             if (arguments.has("test")) {
@@ -132,30 +143,62 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleRequestMessage(SocketServer.ClientConnection clientConnection, MiniPerfServerProtocol request) {
         switch (request.getProtocolCase()) {
+            // TODO: other requests
             case PROFILEREQ:
                 return handleProfileReq(clientConnection, request.getProfileReq());
             case GETMEMORYUSAGEREQ:
                 return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
             case GETBATTERYINFOREQ:
-                return handleGetBatteryInfoReq(request.getGetBatteryInfoReq());
+                return handleGetBatteryInfoReq();
             case GETAPPINFOREQ:
                 return handleGetAppInfoReq();
-            // TODO: other requests
+            case HELLOREQ:
+                return handleHelloReq();
+            case STOPPROFILEREQ:
+                return handleStopProfileReq();
+            case TOGGLEINTERESTINGFILEDNTF:
+                handleToggleInterestingFiledNtf(request.getToggleInterestingFiledNTF());
         }
         return null;
     }
 
+    private void handleToggleInterestingFiledNtf(ToggleInterestingFiledNTF request) {
+        int dataTypeNum = request.getDataType();
+        ProfileReq.DataType dataType = ProfileReq.DataType.forNumber(dataTypeNum);
+        PerformanceMonitor monitor = session.getMonitor();
+        monitor.setMonitorFiledStatus(dataType, !monitor.getMonitorFiledStatus(dataType));
+    }
+
+    private byte[] handleStopProfileReq() {
+        if (session != null) {
+            session.getMonitor().stop();
+            session.getConnection().close();
+        }
+        return MiniPerfServerProtocol.newBuilder().setStopProfileRsp(StopProfileRsp.newBuilder()).build().toByteArray();
+    }
+
     private byte[] handleProfileReq(SocketServer.ClientConnection clientConnection, ProfileReq request) {
+        //只能存在一条长链接
+        if (session != null) {
+            return MiniPerfServerProtocol.newBuilder().setProfileRsp(
+                    ProfileRsp.newBuilder()
+                            .setTimestamp(System.currentTimeMillis())
+                            .setErrorCode(-1)
+                            .setSessionId(session.getSessionId()))
+                    .build().toByteArray();
+        }
         TargetApp targetApp = new TargetApp();
-        targetApp.setPackageName(request.getProfileApp().getAppInfo().getPackageName());
+        String packageName = request.getProfileApp().getAppInfo().getPackageName();
+        targetApp.setPackageName(packageName);
         //TODO userid is pid
-        targetApp.setPid(request.getProfileApp().getAppInfo().getUserId());
+        //targetApp.setPid(request.getProfileApp().getAppInfo().getUserId());
+        targetApp.setPid(AndroidProcessUtils.getPid(packageName));
         List<ProfileReq.DataType> dataTypes = request.getDataTypesList();
         Log.i(TAG, "recv profile data types : " + dataTypes.toString());
         int errorCode = 0;
         int sessionId = 0;
         PerformanceMonitor performanceMonitor = new PerformanceMonitor(1000, 2000);
-        Session session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
+        session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
         if (session != null) {
             sessionId = session.getSessionId();
         } else {
@@ -182,7 +225,7 @@ public class MiniPerfServer implements SocketServer.Callback {
         return null;
     }
 
-    private byte[] handleGetBatteryInfoReq(GetBatteryInfoReq request) {
+    private byte[] handleGetBatteryInfoReq() {
         if (mBatteryMonitor == null) {
             mBatteryMonitor = new BatteryMonitor(null);
         }
@@ -206,5 +249,10 @@ public class MiniPerfServer implements SocketServer.Callback {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private byte[] handleHelloReq() {
+        MiniPerfServerProtocol emptyRsp = MiniPerfServerProtocol.newBuilder().setEmptyRsp(EmptyRsp.newBuilder()).build();
+        return emptyRsp.toByteArray();
     }
 }

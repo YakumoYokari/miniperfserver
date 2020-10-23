@@ -1,10 +1,13 @@
 package com.github.sandin.miniperf.server.monitor;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.os.Debug;
 import android.util.Log;
 
 import com.genymobile.scrcpy.wrappers.ActivityManager;
 import com.genymobile.scrcpy.wrappers.ServiceManager;
+import com.github.sandin.miniperf.server.MiniPerfServer;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MemoryDetail;
@@ -22,8 +25,10 @@ public class MemoryMonitor implements IMonitor<Memory> {
 
     private final ActivityManager mActivityManager;
 
+    @SuppressLint("ServiceCast")
     public MemoryMonitor() {
-        mActivityManager = new ServiceManager().getActivityManager();
+        //mActivityManager = new ServiceManager().getActivityManager();
+        mActivityManager = (ActivityManager)MiniPerfServer.context.getSystemService(Context.ACTIVITY_SERVICE);
     }
 
     /**

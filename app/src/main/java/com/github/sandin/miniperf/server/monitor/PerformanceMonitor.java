@@ -3,50 +3,36 @@ package com.github.sandin.miniperf.server.monitor;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
-import androidx.annotation.Nullable;
+import java.util.Map;
 
 /**
  * The Performance Monitor
  */
 public class PerformanceMonitor {
     private static final String TAG = "PerformanceMonitor";
-
-    /**
-     * The callback of monitor
-     */
-    public interface Callback {
-
-        /**
-         * On new data update
-         *
-         * @param data the new data
-         */
-        void onUpdate(ProfileNtf data);
-
-    }
-
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
     private final List<IMonitor> mMonitors = new ArrayList<>();
-
     private List<Callback> mCallback = new ArrayList<>();
-
+    //记录Monitor是否启动,启动value为true，key为dataType
+    private Map<ProfileReq.DataType, Boolean> mMonitorStatus = new HashMap<>();
+    private FpsMonitor mFpsMonitor;
     @Nullable
     private Thread mThread;
-
     /**
      * Target application
      */
     @Nullable
     private TargetApp mTargetApp;
-
     private boolean mIsRunning = false;
 
     /**
@@ -58,6 +44,26 @@ public class PerformanceMonitor {
     public PerformanceMonitor(int intervalMs, int screenshotIntervalMs) {
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
+        //init monitor status
+        for (ProfileReq.DataType dataType : ProfileReq.DataType.values()) {
+            mMonitorStatus.put(dataType, false);
+        }
+    }
+
+    public void registerType(ProfileReq.DataType dataType) {
+        mMonitorStatus.put(dataType, true);
+    }
+
+    public void unregisterType(ProfileReq.DataType dataType) {
+        mMonitorStatus.put(dataType, false);
+    }
+
+    public void setMonitorFiledStatus(ProfileReq.DataType dataType, Boolean state) {
+        mMonitorStatus.put(dataType, state);
+    }
+
+    public boolean getMonitorFiledStatus(ProfileReq.DataType dataType) {
+        return mMonitorStatus.get(dataType);
     }
 
     /**
@@ -123,27 +129,64 @@ public class PerformanceMonitor {
         mIsRunning = true;
 
         for (ProfileReq.DataType dataType : dataTypes) {
-            Log.i(TAG,"now data type is : "+dataType.name());
-            switch (dataType.name()) {
-                case "FPS":
-                    registerMonitor(new FpsMonitor());
-                    Log.i(TAG,"fps monitor register success");
+            Log.i(TAG, "now data type is : " + dataType.name());
+            switch (dataType) {
+                //TODO
+                case CPU_USAGE:
                     break;
-                case "MEMORY":
-                    registerMonitor(new MemoryMonitor());
-                    Log.i(TAG,"memory monitor register success");
+                case CORE_FREQUENCY:
                     break;
-                case "BATTERY":
-                    registerMonitor(new BatteryMonitor(null));
-                    Log.i(TAG,"battery monitor register success");
+                case GPU_USAGE:
                     break;
-                case "CPU_TEMPERATURE":
-                    registerMonitor(new CpuTemperatureMonitor());
-                    Log.i(TAG,"cpu temperature monitor register success");
+                case GPU_FREQ:
                     break;
-                case "SCREEN_SHOT":
+                case FPS:
+                    if (mMonitorStatus.get(ProfileReq.DataType.FRAME_TIME)) {
+                        mFpsMonitor.addNeedDataType(dataType);
+                    } else {
+                        mFpsMonitor = new FpsMonitor();
+                        mFpsMonitor.addNeedDataType(dataType);
+                        registerMonitor(mFpsMonitor);
+                        registerType(dataType);
+                        Log.i(TAG, "fps monitor register success");
+                    }
+                    break;
+                case NETWORK_USAGE:
+                    break;
+                case SCREEN_SHOT:
                     registerMonitor(new ScreenshotMonitor());
-                    Log.i(TAG,"screenshot temperature monitor register success");
+                    Log.i(TAG, "screenshot temperature monitor register success");
+                    break;
+                case MEMORY:
+                    registerMonitor(new MemoryMonitor());
+                    registerType(dataType);
+                    Log.i(TAG, "memory monitor register success");
+                    break;
+                case BATTERY:
+                    registerMonitor(new BatteryMonitor(null));
+                    registerType(dataType);
+                    Log.i(TAG, "battery monitor register success");
+                    break;
+                case CPU_TEMPERATURE:
+                    registerMonitor(new CpuTemperatureMonitor());
+                    registerType(dataType);
+                    Log.i(TAG, "cpu temperature monitor register success");
+                    break;
+                case FRAME_TIME:
+                    if (mMonitorStatus.get(ProfileReq.DataType.FPS)) {
+                        mFpsMonitor.addNeedDataType(dataType);
+                    } else {
+                        mFpsMonitor = new FpsMonitor();
+                        mFpsMonitor.addNeedDataType(dataType);
+                        registerMonitor(mFpsMonitor);
+                        registerType(dataType);
+                        Log.i(TAG, "frame times monitor register success");
+                    }
+                    break;
+                case ANDROID_MEMORY_DETAIL:
+                    break;
+                case CORE_USAGE:
+                    break;
             }
         }
         mThread = new Thread(new MonitorWorker());
@@ -156,6 +199,7 @@ public class PerformanceMonitor {
             mIsRunning = false;
 
             // TODO: unregisterMonitors
+            mMonitors.clear();
 
             if (mThread != null) {
                 try {
@@ -179,6 +223,20 @@ public class PerformanceMonitor {
             e.printStackTrace();
         }
         return data.build();
+    }
+
+    /**
+     * The callback of monitor
+     */
+    public interface Callback {
+
+        /**
+         * On new data update
+         *
+         * @param data the new data
+         */
+        void onUpdate(ProfileNtf data);
+
     }
 
     private class MonitorWorker implements Runnable {

@@ -10,11 +10,15 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.FPS;
 import com.github.sandin.miniperf.server.proto.FrameTime;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+
 //TODO bug
 public class FpsMonitor implements IMonitor<FpsInfo> {
 
@@ -24,6 +28,7 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
     private long mRefreshPeriod;
     private long mLatestSeen = 0;
     private List<Long> mElapsedTimes = new ArrayList<>();
+    private Set<ProfileReq.DataType> mNeedDataTypes = new LinkedHashSet<>();
 
     private boolean getLayerName(@NonNull String packageName) {
         List<String> result = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--list"});
@@ -126,21 +131,30 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         return jankInfo;
     }
 
+    public boolean addNeedDataType(ProfileReq.DataType dataType) {
+        boolean result = mNeedDataTypes.add(dataType);
+        return result;
+    }
+
     @Override
     public FpsInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.i(TAG, "start collect fps info");
         FpsInfo fpsInfo = new FpsInfo();
         List<Long> frameTimes = getFrameTimes(targetApp.getPackageName());
         JankInfo jankInfo = checkJank(frameTimes);
-        float fps = ((float) (mElapsedTimes.size() - 1)) / ((float) (mElapsedTimes.get(mElapsedTimes.size() - 1) - mElapsedTimes.get(0)) / (100 * 1000 * 10000));
+        float fps = ((float) (mElapsedTimes.size() - 1))
+                / ((float) (mElapsedTimes.get(mElapsedTimes.size() - 1) - mElapsedTimes.get(0)) / (100 * 1000 * 10000));
         Log.i(TAG, "collect fps success : " + fps);
         fpsInfo.setFps(FPS.newBuilder().setFps(fps).build());
         fpsInfo.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes).build());
         if (data != null) {
-            data.setFps(FPS.newBuilder().setFps(fps).setJank(jankInfo.getJank()).setBigJank(jankInfo.getBigJank()))
-                    .setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes));
+            if (mNeedDataTypes.contains(ProfileReq.DataType.FPS))
+                data.setFps(FPS.newBuilder().setFps(fps).setJank(jankInfo.getJank()).setBigJank(jankInfo.getBigJank()));
+            else if (mNeedDataTypes.contains(ProfileReq.DataType.FRAME_TIME))
+                data.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes));
         }
         Log.i(TAG, "collect fps info success : " + fpsInfo.toString());
         return fpsInfo;
     }
+
 }
