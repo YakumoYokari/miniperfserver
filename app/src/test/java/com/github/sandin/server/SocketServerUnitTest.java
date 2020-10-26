@@ -51,7 +51,7 @@ public class SocketServerUnitTest {
 
     @Test
     public void getMemory() throws Exception {
-        int pid = 20363;
+        int pid = 10196;
 
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetMemoryUsageReq(
                 GetMemoryUsageReq.newBuilder().setPid(pid)).build();
@@ -100,8 +100,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "com.tencent.tmgp.jxqy";
-        int pid = 20363;
+        String packageName = "com.xsj.jxsj3.xsj";
+        int pid = 10196;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))
@@ -115,6 +115,8 @@ public class SocketServerUnitTest {
                         .addDataTypes(ProfileReq.DataType.FPS)
                         .addDataTypes(ProfileReq.DataType.MEMORY)
                         .addDataTypes(ProfileReq.DataType.BATTERY)
+                        .addDataTypes(ProfileReq.DataType.GPU_USAGE)
+                        .addDataTypes(ProfileReq.DataType.GPU_FREQ)
                 )
                 .build();
         System.out.println("send request: " + request);

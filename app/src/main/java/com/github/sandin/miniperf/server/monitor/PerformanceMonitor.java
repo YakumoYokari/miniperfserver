@@ -144,10 +144,12 @@ public class PerformanceMonitor {
                 case CORE_FREQUENCY:
                     break;
                 case GPU_USAGE:
-                    registerMonitor(new GpuMonitor());
+                    registerMonitor(new GpuUsageMonitor());
                     Log.i(TAG, "gpu usage monitor register success");
                     break;
                 case GPU_FREQ:
+                    registerMonitor(new GpuFreqMonitor());
+                    Log.i(TAG, "gpu freq monitor register success");
                     break;
                 case FPS:
                     if (mMonitorStatus.get(ProfileReq.DataType.FRAME_TIME)) {
@@ -273,7 +275,6 @@ public class PerformanceMonitor {
                     Log.w(TAG, "Collect data take too many time, no need to sleep, cost time=" + costTime);
                 }
             }
-            stop();
         }
     }
 
