@@ -32,14 +32,21 @@ import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
+import com.github.sandin.miniperf.server.proto.Power;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.ProfileRsp;
 
+import java.net.Socket;
 import java.util.List;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 
 /**
  * MiniPerfServer
  */
-public class MiniPerfServer implements SocketServer.Callback {
+public class MiniPerfServer extends Thread implements SocketServer.Callback  {
     private static final String TAG = "MiniPerfServer";
 
     /**
@@ -47,12 +54,13 @@ public class MiniPerfServer implements SocketServer.Callback {
      */
     private static final String UNIX_DOMAIN_SOCKET_NAME = "miniperfserver";
 
+    private static final int PORT = 43300;
+
     //TODO use context
     private static Context mContext;
 
     @Nullable
     private MemoryMonitor mMemoryMonitor;
-
 
     @Nullable
     private BatteryMonitor mBatteryMonitor;
@@ -126,9 +134,43 @@ public class MiniPerfServer implements SocketServer.Callback {
         }
     }
 
+    class UnixSocket implements Runnable {
+        private SocketServer server;
+        public UnixSocket(@NonNull String socketName, @Nullable SocketServer.Callback messageHandler){
+            server = new SocketServer(socketName, messageHandler);
+        }
+        @Override
+        public void run(){
+            server.start();
+        }
+    }
+
+
+
+    class PortSocket implements Runnable{
+        private SocketServer server;
+        public PortSocket(@NonNull int PORT, @Nullable SocketServer.Callback messageHandler){
+            server = new SocketServer(PORT, messageHandler);
+        }
+        @Override
+        public void run(){
+            server.start();
+        }
+    }
+
+
     public void run(ArgumentParser.Arguments arguments) {
-        SocketServer server = new SocketServer(UNIX_DOMAIN_SOCKET_NAME, this);
-        server.start();
+//        SocketServer server = new SocketServer(UNIX_DOMAIN_SOCKET_NAME, this);
+//        SocketServer portServer = new SocketServer(PORT, this);
+//        server.start();
+//        portServer.start();
+        Runnable unixSocket = new UnixSocket(UNIX_DOMAIN_SOCKET_NAME,this);
+        Runnable portSocket = new PortSocket(PORT,this);
+        Thread thread1 = new Thread(unixSocket);
+        Thread thread2 = new Thread(portSocket);
+        thread1.start();
+        Log.i(TAG, "run: one");
+        thread2.start();
     }
 
     @Override

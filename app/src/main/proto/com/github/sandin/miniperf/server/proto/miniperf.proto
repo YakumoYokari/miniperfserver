@@ -273,8 +273,8 @@ message Temp {
   int32 temp = 1;                     // CPU温度(℃)
 }
 message CpuUsage {
-  float appUsage = 1;                 // APP CPU使用率(%)
-  float totalUsage = 2;               // 总CPU使用率(%)
+  float appUsage = 1;                 // APP CPU使用率(%) 百分比
+  float totalUsage = 2;               // 总CPU使用率(%) 百分比
 }
 message FPS {
   float fps = 1;
