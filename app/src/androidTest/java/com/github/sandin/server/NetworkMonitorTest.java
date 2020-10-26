@@ -1,11 +1,14 @@
 package com.github.sandin.server;
 
 import android.content.Context;
+import android.net.TrafficStats;
 import android.util.Log;
 
+import androidx.test.platform.app.InstrumentationRegistry;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.miniperf.server.bean.TrafficInfo;
 import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
+import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import org.junit.After;
@@ -14,8 +17,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import androidx.test.platform.app.InstrumentationRegistry;
 
 @RunWith(JUnit4.class)
 public class NetworkMonitorTest {
@@ -30,8 +31,8 @@ public class NetworkMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mUid = AndroidProcessUtils.getUid(mContext,PACKAGE_NAME);
-        mPid = AndroidProcessUtils.getPid(mContext,PACKAGE_NAME);
+        mUid = AndroidProcessUtils.getUid(mContext, PACKAGE_NAME);
+        mPid = AndroidProcessUtils.getPid(mContext, PACKAGE_NAME);
         mTargetApp = new TargetApp(PACKAGE_NAME, mPid);
         mNetworkMonitor = new NetworkMonitor(mContext);
     }
@@ -43,11 +44,13 @@ public class NetworkMonitorTest {
 
     @Test
     public void collectTest() throws Exception {
-        String packageName = "com.tencent.tmgp.jxqy";
-        int pid = 20363;
-        TargetApp targetApp = new TargetApp(packageName,pid);
-        TrafficInfo trafficInfo = mNetworkMonitor.collect(targetApp,System.currentTimeMillis(),null);
-        Log.v(TAG, NetworkMonitor.dumpTraffics(trafficInfo));
-        Assert.assertNotNull(trafficInfo);
+        int pid = AndroidProcessUtils.getPid(mContext, PACKAGE_NAME);
+//        int uid = 10057;
+        TargetApp targetApp = new TargetApp(PACKAGE_NAME, pid);
+        Network network = mNetworkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+        Log.v(TAG, NetworkMonitor.dumpTraffics(network));
+//        Assert.assertNotNull(network);
+//        long uidRxBytes = TrafficStats.getUidRxBytes(uid);
+//        Assert.assertNotEquals(0, uidRxBytes);
     }
 }

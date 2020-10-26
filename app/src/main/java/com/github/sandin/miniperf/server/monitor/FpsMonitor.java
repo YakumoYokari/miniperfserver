@@ -29,11 +29,12 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
     private long mLatestSeen = 0;
     private List<Long> mElapsedTimes = new ArrayList<>();
     private Set<ProfileReq.DataType> mNeedDataTypes = new LinkedHashSet<>();
+    private long mLastTime = 0;
 
     private boolean getLayerName(@NonNull String packageName) {
         List<String> result = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--list"});
         for (String line : result) {
-            if (line.startsWith(packageName + "/" + packageName)) {
+            if (line.startsWith(packageName + "/")) {
                 mLayerName = line.trim();
                 return true;
             }
@@ -41,18 +42,23 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         return false;
     }
 
-    private List<String> getFramesData(@NonNull String layerName) {
+    private List<String> getFramesDataFromDumpsys(@NonNull String layerName) {
         List<String> timestamps = new LinkedList<>();
         if (layerName != null) {
+            //单位为ns
             timestamps = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--latency", mLayerName});
             if (timestamps.size() > 0) {
                 mRefreshPeriod = Long.parseLong(timestamps.get(0));
                 Log.i(TAG, "refresh period is " + mRefreshPeriod);
             }
+            Log.i(TAG, "collect frame data from dumpsys success : " + timestamps.toString());
         }
         return timestamps;
     }
 
+    /*
+    https://cs.android.com/android/platform/superproject/+/master:tools/test/graphicsbenchmark/performance_tests/hostside/src/com/android/game/qualification/metric/GameQualificationFpsCollector.java;drc=master;l=181?q=GameQualificationFps&ss=android
+    */
     private boolean sample(long readyTimeStamp, long presentTimeStamp) {
         if (presentTimeStamp == Long.MAX_VALUE || readyTimeStamp == Long.MAX_VALUE) {
             return false;
@@ -67,23 +73,24 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         }
     }
 
-    //TODO 极少数情况下frametime数量无法与fps对应上 可能筛选算法存在问题
-    private List<Long> getFrameTimes(@NonNull String packageName) {
+    private List<Long> getNewFrameTimes(@NonNull String packageName) {
         boolean hasLayerName = getLayerName(packageName);
         if (!hasLayerName) {
             Log.e(TAG, "application hasn't start or package name is error!");
             return null;
         }
-        List<String> framesData = getFramesData(mLayerName);
+        List<String> framesData = getFramesDataFromDumpsys(mLayerName);
+        Log.i(TAG, "frame times size :  " + framesData.size());
+        Log.i(TAG, "now last time is : " + mLastTime);
         if (framesData.size() == 1) {
             Log.e(TAG, "can't get frames data !");
             return null;
         }
-        mElapsedTimes.clear();
         boolean overlap = false;
         for (String line : framesData) {
             String[] parts = line.split("\t");
             if (parts.length == 3) {
+                //get frame times from dumpsys
                 if (sample(Long.parseLong(parts[2]), Long.parseLong(parts[1]))) {
                     overlap = true;
                 }
@@ -91,34 +98,41 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         }
         if (!overlap)
             Log.e(TAG, "No overlap with previous poll, we missed some frames!");
-        List<Long> frameTimes = new ArrayList<>();
-        if (mElapsedTimes.size() > 0) {
-            for (int i = 0; i < mElapsedTimes.size() - 1; i++) {
-                frameTimes.add((mElapsedTimes.get(i + 1) - mElapsedTimes.get(i)) / 10000);
+        Log.i(TAG, "Elapsed times size : " + mElapsedTimes.size());
+        if (mLastTime == 0) {
+            mLastTime = mElapsedTimes.get(mElapsedTimes.size() - 1);
+            return null;
+        } else {
+            List<Long> newFrameTimes = new ArrayList<>();
+            newFrameTimes.add(mLastTime);
+            for (long time : mElapsedTimes) {
+                if (time > mLastTime) {
+                    newFrameTimes.add(time);
+                }
             }
+            return newFrameTimes;
         }
-        Log.i(TAG, "Elapsed time : " + mElapsedTimes.toString());
-        return frameTimes;
     }
 
+    //TODO 存在单位问题
     private JankInfo checkJank(List<Long> frameTimes) {
         JankInfo jankInfo = new JankInfo();
         int jank = 0;
         int bigJank = 0;
-        long first_3s_frame_time = 0;
-        long first_2s_frame_time = 0;
-        long first_1s_frame_time = 0;
+        Long first_3s_frame_time = null;
+        Long first_2s_frame_time = null;
+        Long first_1s_frame_time = null;
         for (Long frameTime : frameTimes) {
             Double time = (double) frameTime;
-            if (first_1s_frame_time != 0 || first_2s_frame_time != 0 || first_3s_frame_time != 0) {
+            if (first_1s_frame_time != null || first_2s_frame_time != null || first_3s_frame_time != null) {
                 double average = (first_1s_frame_time + first_2s_frame_time + first_3s_frame_time) / (3.0 * 2.0) + 2.0;
-                if ((time.compareTo(average) > 0) && (time.compareTo(8533.333333333333) > 0)) {
+                if ((average > 0) && (time > 85.33333333333333)) {
                     jank++;
                     if (time.compareTo(12700.0) > 0)
                         bigJank++;
-                    first_1s_frame_time = 0;
-                    first_2s_frame_time = 0;
-                    first_3s_frame_time = 0;
+                    first_1s_frame_time = null;
+                    first_2s_frame_time = null;
+                    first_3s_frame_time = null;
                 }
             } else {
                 first_3s_frame_time = first_2s_frame_time;
@@ -140,20 +154,35 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
     public FpsInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.i(TAG, "start collect fps info");
         FpsInfo fpsInfo = new FpsInfo();
-        List<Long> frameTimes = getFrameTimes(targetApp.getPackageName());
+        List<Long> newFrameTimes = getNewFrameTimes(targetApp.getPackageName());
+        Log.i(TAG, "collect new frame times success : " + newFrameTimes);
+        if (newFrameTimes == null) {
+            Log.v(TAG, "no refresh!");
+            fpsInfo.setFps(FPS.newBuilder().build());
+            fpsInfo.setFrameTime(FrameTime.newBuilder().build());
+            return fpsInfo;
+        }
+
+        List<Long> frameTimes = new LinkedList<>();
+        for (int i = 1; i < newFrameTimes.size(); i++) {
+            //TODO 单位需要修改
+            frameTimes.add((newFrameTimes.get(i) - newFrameTimes.get(i - 1)) / 10000);
+        }
+
         JankInfo jankInfo = checkJank(frameTimes);
-        float fps = ((float) (mElapsedTimes.size() - 1))
-                / ((float) (mElapsedTimes.get(mElapsedTimes.size() - 1) - mElapsedTimes.get(0)) / (100 * 1000 * 10000));
+        float fps = newFrameTimes.size() / ((newFrameTimes.get(newFrameTimes.size() - 1) - newFrameTimes.get(0)) / (float) 1e9);
         Log.i(TAG, "collect fps success : " + fps);
         fpsInfo.setFps(FPS.newBuilder().setFps(fps).build());
         fpsInfo.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes).build());
         if (data != null) {
             if (mNeedDataTypes.contains(ProfileReq.DataType.FPS))
                 data.setFps(FPS.newBuilder().setFps(fps).setJank(jankInfo.getJank()).setBigJank(jankInfo.getBigJank()));
-            else if (mNeedDataTypes.contains(ProfileReq.DataType.FRAME_TIME))
+            if (mNeedDataTypes.contains(ProfileReq.DataType.FRAME_TIME))
                 data.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes));
         }
         Log.i(TAG, "collect fps info success : " + fpsInfo.toString());
+        //clear cache
+        mElapsedTimes.clear();
         return fpsInfo;
     }
 

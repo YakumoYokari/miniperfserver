@@ -33,7 +33,7 @@ public class GpuFreqMonitor implements IMonitor<GpuFreq> {
 //    }
 
     private int getGpuClock() {
-        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.sGpuClockSystemFilePaths);
+        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.GPU_CLOCK_SYSTEM_FILE_PATHS);
         int gpuClock = 0;
         if (content.size() > 0)
             gpuClock = Integer.parseInt(content.get(0)) / 1000000;//hz -> mhz

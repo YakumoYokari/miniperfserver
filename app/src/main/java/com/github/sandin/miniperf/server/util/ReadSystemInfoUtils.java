@@ -17,6 +17,8 @@ import java.util.Scanner;
 
 public class ReadSystemInfoUtils {
 
+    private static final String TAG = "MiniPerfMonitor";
+
     /**
      * read system file info
      *
@@ -26,23 +28,26 @@ public class ReadSystemInfoUtils {
     public static List<String> readInfoFromSystemFile(String[] systemFilePaths) {
         List<String> content = new LinkedList<>();
         for (String path : systemFilePaths) {
-            Log.i("MiniperfServer", "now read file path is " + path);
+            Log.i(TAG, "now read file path is " + path);
             File systemFile = new File(path);
             Scanner scanner = null;
+            Log.i(TAG, "is file exist : " + systemFile.exists());
             if (systemFile.exists()) {
+                Log.i(TAG, "start read system file : " + path);
                 try {
                     scanner = new Scanner(systemFile);
-                    if (scanner.hasNext()) {
-                        content.add(scanner.nextLine());
+                    String line;
+                    while ((line = scanner.nextLine()) != null) {
+                        content.add(line);
                     }
-                    if (content.size() > 0)
-                        break;
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     close(scanner);
                 }
             }
+            if (content.size() > 0)
+                break;
         }
         return content;
     }

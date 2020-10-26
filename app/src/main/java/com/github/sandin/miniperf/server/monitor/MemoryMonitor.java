@@ -13,6 +13,11 @@ import com.github.sandin.miniperf.server.proto.MemoryDetail;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.ReflectionUtils;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+
 /**
  * Memory Monitor
  *
@@ -51,6 +56,37 @@ public class MemoryMonitor implements IMonitor<Memory> {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+    private long getVssMemory(int pid) throws IOException {
+        Log.i(TAG, "start collect vss memory");
+        String vssSystemFilePath = "/proc/" + pid + "/status";
+        long vss = 0;
+        File file = new File(vssSystemFilePath);
+        if (file.exists()) {
+            BufferedReader reader = null;
+            try {
+                reader = new BufferedReader(new FileReader(file));
+                String line;
+                String vssStr = "";
+                while ((line = reader.readLine()) != null) {
+                    if (line.startsWith("VmSize")) {
+                        for (int i = 0; i < line.length(); i++) {
+                            if (line.charAt(i) >= '0' && line.charAt(i) <= '9')
+                                vssStr += line.charAt(i);
+                        }
+                    }
+                }
+                if (!vssStr.equals("")) {
+                    vss = Integer.parseInt(vssStr);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                reader.close();
+            }
+        }
+        return vss;
     }
 
     public Memory collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
@@ -111,6 +147,9 @@ public class MemoryMonitor implements IMonitor<Memory> {
             memoryDetailBuilder.setNativePss(memoryInfo.nativePss);
         }
         memoryBuilder.setMemoryDetail(memoryDetailBuilder);
+        //vss
+        long vss = getVssMemory(targetApp.getPid());
+        memoryBuilder.setVirtualMemory(vss);
         Memory memory = memoryBuilder.build();
         Log.v(TAG, dumpMemory(memory));
         if (data != null) {

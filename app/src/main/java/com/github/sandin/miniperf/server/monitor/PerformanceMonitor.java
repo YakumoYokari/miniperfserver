@@ -9,7 +9,6 @@ import androidx.annotation.Nullable;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
-import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -152,7 +151,7 @@ public class PerformanceMonitor {
                     Log.i(TAG, "gpu freq monitor register success");
                     break;
                 case FPS:
-                    if (mMonitorStatus.get(ProfileReq.DataType.FRAME_TIME)) {
+                    if (mFpsMonitor != null) {
                         mFpsMonitor.addNeedDataType(dataType);
                     } else {
                         mFpsMonitor = new FpsMonitor();
@@ -163,10 +162,14 @@ public class PerformanceMonitor {
                     }
                     break;
                 case NETWORK_USAGE:
+                    registerMonitor(new NetworkMonitor(mContext));
+                    Log.i(TAG, "network monitor register success");
+                    registerType(dataType);
                     break;
                 case SCREEN_SHOT:
                     registerMonitor(new ScreenshotMonitor());
-                    Log.i(TAG, "screenshot temperature monitor register success");
+                    Log.i(TAG, "screenshot  monitor register success");
+                    registerType(dataType);
                     break;
                 case MEMORY:
                     registerMonitor(new MemoryMonitor());
@@ -184,7 +187,7 @@ public class PerformanceMonitor {
                     Log.i(TAG, "cpu temperature monitor register success");
                     break;
                 case FRAME_TIME:
-                    if (mMonitorStatus.get(ProfileReq.DataType.FPS)) {
+                    if (mMonitorStatus == null) {
                         mFpsMonitor.addNeedDataType(dataType);
                     } else {
                         mFpsMonitor = new FpsMonitor();
@@ -199,6 +202,7 @@ public class PerformanceMonitor {
                 case CORE_USAGE:
                     break;
             }
+            Log.i(TAG, "now monitors status : " + mMonitorStatus.toString());
         }
         mThread = new Thread(new MonitorWorker());
         mThread.start();
@@ -257,7 +261,7 @@ public class PerformanceMonitor {
         @Override
         public void run() {
             mFirstTime = SystemClock.uptimeMillis();
-            mIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
+//            mIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
             while (mIsRunning) {
                 long startTime = SystemClock.uptimeMillis();
 //                ProfileNtf collectData = collectData(startTime - mFirstTime);

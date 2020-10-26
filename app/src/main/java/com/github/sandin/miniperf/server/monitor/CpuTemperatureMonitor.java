@@ -18,8 +18,11 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
         int temperature = 0;
         if (content.size() > 0) {
             temperature = Integer.parseInt(content.get(0));
-            if (temperature >= 100) {
-                temperature = Math.round((float) temperature / 1000);
+            //TODO 某些机型的配置文件读出来只需要除10 已修复 待回测
+            if (temperature >= 100 && temperature < 1000) {
+                temperature = Math.abs(Math.round((float) temperature / 10));
+            } else if (temperature >= 1000) {
+                temperature = Math.abs(Math.round((float) temperature / 1000));
             }
         }
         return temperature;

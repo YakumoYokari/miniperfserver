@@ -33,9 +33,11 @@ public final class DataSource {
             "/sys/class/kgsl/kgsl-3d0/gpubusy",//高通
     };
 
-    public static final String[] sGpuClockSystemFilePaths = {
+    public static final String[] GPU_CLOCK_SYSTEM_FILE_PATHS = {
             "/sys/class/kgsl/kgsl-3d0/gpuclk",//高通
     };
+
+    public static final String NETWORK_SYSTEM_FILE_PATHS = "/proc/net/xt_qtaguid/stats";
 
 
 }
