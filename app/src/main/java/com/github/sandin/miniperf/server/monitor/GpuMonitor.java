@@ -63,11 +63,15 @@ public class GpuMonitor implements IMonitor<GpuInfo> {
     public GpuInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect gpu data: timestamp=" + timestamp);
         GpuInfo gpuInfo = new GpuInfo();
+        Log.i(TAG, "gpu usage is " + gpuInfo.getGpuUsage());
+        Log.i(TAG, "gpu freq is " + gpuInfo.getGpuFreq());
         gpuInfo.setGpuUsage(GpuUsage.newBuilder().setGpuUsage(getGpuUsage()).build());
         gpuInfo.setGpuFreq(GpuFreq.newBuilder().setGpuFreq(getGpuClock()).build());
         Log.v(TAG, dumpGpuInfo(gpuInfo));
-        data.setGpuFreq(gpuInfo.getGpuFreq());
-        data.setGpuUsage(gpuInfo.getGpuUsage());
+        if (data != null) {
+            data.setGpuFreq(gpuInfo.getGpuFreq());
+            data.setGpuUsage(gpuInfo.getGpuUsage());
+        }
         return gpuInfo;
     }
 }

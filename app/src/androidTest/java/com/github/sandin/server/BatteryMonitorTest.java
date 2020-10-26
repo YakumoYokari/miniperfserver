@@ -4,6 +4,9 @@ package com.github.sandin.server;
 import android.content.Context;
 import android.os.BatteryManager;
 
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.proto.Power;
 
@@ -12,9 +15,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 @RunWith(AndroidJUnit4.class)
 public class BatteryMonitorTest {
@@ -26,7 +26,7 @@ public class BatteryMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mBatteryMonitor = new BatteryMonitor(null);
+        mBatteryMonitor = new BatteryMonitor(mContext, null);
     }
 
     @After
@@ -35,22 +35,22 @@ public class BatteryMonitorTest {
     }
 
     @Test
-    public void getPowerInfoFromServerTest(){
+    public void getPowerInfoFromServerTest() {
 
     }
 
     @Test
     public void collectTest() throws Exception {
-        for (String source : mSources) {
-            mBatteryMonitor = new BatteryMonitor(source);
-            Power power = mBatteryMonitor.collect(null, 0,null);
-            BatteryMonitor.dumpPower(power);
-            Assert.assertNotNull(power);
-        }
+        mBatteryMonitor = new BatteryMonitor(mContext, null);
+        Power power = mBatteryMonitor.collect(null, 0, null);
+        BatteryMonitor.dumpPower(power);
+        Assert.assertNotNull(power);
+        Assert.assertNotEquals(0,power.getCurrent());
+        Assert.assertNotEquals(0,power.getVoltage());
     }
 
     @Test
-    public void collectByContextTest(){
+    public void collectByContextTest() {
         BatteryManager batteryManager = (BatteryManager) mContext.getSystemService(Context.BATTERY_SERVICE);
         int intProperty = batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
         Assert.assertNotNull(intProperty);

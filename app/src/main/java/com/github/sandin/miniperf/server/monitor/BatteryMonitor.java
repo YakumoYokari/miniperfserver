@@ -5,7 +5,9 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.util.Log;
 
-import com.genymobile.scrcpy.wrappers.ServiceManager;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Power;
@@ -13,9 +15,6 @@ import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
-
-import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
 
 public class BatteryMonitor implements IMonitor<Power> {
 
@@ -28,16 +27,17 @@ public class BatteryMonitor implements IMonitor<Power> {
      * Constructor
      */
     public BatteryMonitor() {
-        this(null);
+        this(null, null);
     }
 
     /**
      * Constructor
      *
-     * @param source  data source
+     * @param source data source
      */
-    public BatteryMonitor(String source) {
-        this.mBatteryManager = (BatteryManager) ServiceManager.getService(Context.BATTERY_SERVICE);
+    public BatteryMonitor(Context context, String source) {
+        mBatteryManager = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
+//        this.mBatteryManager = (BatteryManager) ServiceManager.getService(Context.BATTERY_SERVICE);
         this.mSource = source;
     }
 
@@ -67,13 +67,13 @@ public class BatteryMonitor implements IMonitor<Power> {
     @VisibleForTesting
     private int getVoltageFromDump() {
         int voltage = 0;
-//        List<String> content = ReadSystemInfoUtils.readInfoFromDumpsys("battery");
-//        if (content.size() > 0) {
-//            for (String line : content) {
-//                if (line.startsWith("voltage:"))
-//                    voltage = Integer.parseInt(line.substring(8).trim());
-//            }
-//        }
+        List<String> content = ReadSystemInfoUtils.readInfoFromDumpsys("battery", new String[0]);
+        if (content.size() > 0) {
+            for (String line : content) {
+                if (line.startsWith("voltage:"))
+                    voltage = Integer.parseInt(line.substring(8).trim());
+            }
+        }
         return voltage;
     }
 
@@ -102,29 +102,35 @@ public class BatteryMonitor implements IMonitor<Power> {
     @VisibleForTesting
     private Power getPowerInfoFromDex() {
         int current = micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
+        Log.i(TAG, "collect current : " + current);
         int voltage = getVoltageFromDump();
+        Log.i(TAG, "collect voltage : " + voltage);
         return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
     }
 
     @Override
     public Power collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect battery data: timestamp=" + timestamp);
+        Log.i(TAG, "phone version is : " + Build.VERSION.SDK_INT);
         if (Build.VERSION.SDK_INT < 21) {
             return Power.getDefaultInstance();
         }
         Power power;
-        switch (mSource) {
-            case "server":
-                power = getPowerInfoFromServer();
-                break;
-            case "app":
-                power = getPowerInfoFromApp();
-                break;
-            default:
-                power = getPowerInfoFromDex();
-                break;
-        }
-        data.setPower(power);
+        Log.v(TAG, "now data source is + " + mSource);
+//        switch (mSource) {
+//            case "server":
+//                power = getPowerInfoFromServer();
+//                break;
+//            case "app":
+//                power = getPowerInfoFromApp();
+//                break;
+//            default:
+//                power = getPowerInfoFromDex();
+//                break;
+//        }
+        power = getPowerInfoFromDex();
+        if (data != null)
+            data.setPower(power);
         Log.v(TAG, dumpPower(power));
         return power;
     }

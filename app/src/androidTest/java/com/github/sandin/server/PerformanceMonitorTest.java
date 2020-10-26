@@ -2,6 +2,9 @@ package com.github.sandin.server;
 
 import android.content.Context;
 
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
@@ -14,9 +17,6 @@ import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
 import java.util.List;
-
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import static org.junit.Assert.assertTrue;
 
@@ -36,9 +36,9 @@ public class PerformanceMonitorTest {
     @Before
     public void setUp() {
         mContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mPerformanceMonitor = new PerformanceMonitor(1000, 2 * 1000);
+        mPerformanceMonitor = new PerformanceMonitor(mContext, 1000, 2 * 1000);
 
-        int pid = AndroidProcessUtils.getPid(TARGET_PACKAGE_NAME);
+        int pid = AndroidProcessUtils.getPid(mContext, TARGET_PACKAGE_NAME);
         assertTrue(pid != -1);
         mTargetApp = new TargetApp(TARGET_PACKAGE_NAME, pid);
     }

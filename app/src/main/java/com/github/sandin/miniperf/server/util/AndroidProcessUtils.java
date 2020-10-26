@@ -5,12 +5,11 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.telephony.TelephonyManager;
 
-import com.genymobile.scrcpy.wrappers.ServiceManager;
-
 import java.util.List;
 
 /**
  * Android Process Utils
+ * TODO use context
  */
 public final class AndroidProcessUtils {
 
@@ -20,6 +19,7 @@ public final class AndroidProcessUtils {
 
     /**
      * get phone subscriber id
+     *
      * @param context
      * @return SubscriberId
      */
@@ -34,8 +34,9 @@ public final class AndroidProcessUtils {
      * @param packageName
      * @return use application's package name to get pid
      */
-    public static int getPid(String packageName) {
-        ActivityManager am = (ActivityManager) ServiceManager.getService(Context.ACTIVITY_SERVICE);
+    public static int getPid(Context context, String packageName) {
+        //ActivityManager am = (ActivityManager) ServiceManager.getService(Context.ACTIVITY_SERVICE);
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> pids = am.getRunningAppProcesses();
         int pid = -1;
         if (pids != null) {
@@ -55,13 +56,35 @@ public final class AndroidProcessUtils {
      * @param packageName
      * @return
      */
-    public static int getUid(String packageName) {
+    public static int getUid(Context context, String packageName) {
         try {
-            return ((PackageManager)ServiceManager.getService("package")).getApplicationInfo(packageName, 0).uid;
+            //return ((PackageManager) ServiceManager.getService("package")).getApplicationInfo(packageName, 0).uid;
+            return context.getPackageManager().getApplicationInfo(packageName, 0).uid;
         } catch (PackageManager.NameNotFoundException e) {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    /**
+     * 判断某一应用是否正在运行
+     *
+     * @param context     上下文
+     * @param packageName 应用的包名
+     * @return true 表示正在运行，false 表示没有运行
+     */
+    public static boolean checkAppIsRunning(Context context, String packageName) {
+        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        List<ActivityManager.RunningTaskInfo> list = am.getRunningTasks(100);
+        if (list.size() <= 0) {
+            return false;
+        }
+        for (ActivityManager.RunningTaskInfo info : list) {
+            if (info.baseActivity.getPackageName().equals(packageName)) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

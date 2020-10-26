@@ -1,5 +1,6 @@
 package com.github.sandin.miniperf.server.monitor;
 
+import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -8,6 +9,7 @@ import androidx.annotation.Nullable;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,6 +36,8 @@ public class PerformanceMonitor {
     @Nullable
     private TargetApp mTargetApp;
     private boolean mIsRunning = false;
+    //TODO use context
+    private Context mContext;
 
     /**
      * Constructor
@@ -41,7 +45,8 @@ public class PerformanceMonitor {
      * @param intervalMs           interval time in ms
      * @param screenshotIntervalMs screenshot interval time in ms
      */
-    public PerformanceMonitor(int intervalMs, int screenshotIntervalMs) {
+    public PerformanceMonitor(Context context, int intervalMs, int screenshotIntervalMs) {
+        mContext = context;
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
         //init monitor status
@@ -133,10 +138,14 @@ public class PerformanceMonitor {
             switch (dataType) {
                 //TODO
                 case CPU_USAGE:
+                    registerMonitor(new CpuMonitor(targetApp.getPid()));
+                    Log.i(TAG, "cpu usage monitor register success");
                     break;
                 case CORE_FREQUENCY:
                     break;
                 case GPU_USAGE:
+                    registerMonitor(new GpuMonitor());
+                    Log.i(TAG, "gpu usage monitor register success");
                     break;
                 case GPU_FREQ:
                     break;
@@ -163,7 +172,7 @@ public class PerformanceMonitor {
                     Log.i(TAG, "memory monitor register success");
                     break;
                 case BATTERY:
-                    registerMonitor(new BatteryMonitor(null));
+                    registerMonitor(new BatteryMonitor(mContext, null));
                     registerType(dataType);
                     Log.i(TAG, "battery monitor register success");
                     break;
@@ -217,7 +226,7 @@ public class PerformanceMonitor {
         try {
             for (IMonitor<?> monitor : mMonitors) {
                 monitor.collect(mTargetApp, timestamp, data);
-                Log.v(TAG, "collect data: " + data);
+                Log.v(TAG, "collect data: " + data.build().toString());
             }
         } catch (Throwable e) {
             e.printStackTrace();
@@ -246,9 +255,11 @@ public class PerformanceMonitor {
         @Override
         public void run() {
             mFirstTime = SystemClock.uptimeMillis();
+            mIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
             while (mIsRunning) {
                 long startTime = SystemClock.uptimeMillis();
-                ProfileNtf collectData = collectData(startTime - mFirstTime);
+//                ProfileNtf collectData = collectData(startTime - mFirstTime);
+                ProfileNtf collectData = collectData(System.currentTimeMillis());
                 notifyCallbacks(collectData); // send data
 
                 mTickCount++;
@@ -262,6 +273,7 @@ public class PerformanceMonitor {
                     Log.w(TAG, "Collect data take too many time, no need to sleep, cost time=" + costTime);
                 }
             }
+            stop();
         }
     }
 

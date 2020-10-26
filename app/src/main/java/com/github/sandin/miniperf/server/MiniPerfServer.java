@@ -47,11 +47,12 @@ public class MiniPerfServer implements SocketServer.Callback {
      */
     private static final String UNIX_DOMAIN_SOCKET_NAME = "miniperfserver";
 
+    //TODO use context
+    private static Context mContext;
+
     @Nullable
     private MemoryMonitor mMemoryMonitor;
 
-    //TODO 先用context 后续修改
-    public static Context context;
 
     @Nullable
     private BatteryMonitor mBatteryMonitor;
@@ -89,7 +90,7 @@ public class MiniPerfServer implements SocketServer.Callback {
             Process.setArgV0("MiniPerfServer");
 
             //TODO use context
-            context = ActivityThread.systemMain().getSystemContext();
+            mContext = ActivityThread.systemMain().getSystemContext();
 
             // ONLY FOR TEST
             if (arguments.has("test")) {
@@ -173,6 +174,7 @@ public class MiniPerfServer implements SocketServer.Callback {
         if (session != null) {
             session.getMonitor().stop();
             session.getConnection().close();
+            session = null;
         }
         return MiniPerfServerProtocol.newBuilder().setStopProfileRsp(StopProfileRsp.newBuilder()).build().toByteArray();
     }
@@ -192,12 +194,12 @@ public class MiniPerfServer implements SocketServer.Callback {
         targetApp.setPackageName(packageName);
         //TODO userid is pid
         //targetApp.setPid(request.getProfileApp().getAppInfo().getUserId());
-        targetApp.setPid(AndroidProcessUtils.getPid(packageName));
+        targetApp.setPid(AndroidProcessUtils.getPid(mContext, packageName));
         List<ProfileReq.DataType> dataTypes = request.getDataTypesList();
         Log.i(TAG, "recv profile data types : " + dataTypes.toString());
         int errorCode = 0;
         int sessionId = 0;
-        PerformanceMonitor performanceMonitor = new PerformanceMonitor(1000, 2000);
+        PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
         session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
         if (session != null) {
             sessionId = session.getSessionId();
@@ -227,7 +229,7 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleGetBatteryInfoReq() {
         if (mBatteryMonitor == null) {
-            mBatteryMonitor = new BatteryMonitor(null);
+            mBatteryMonitor = new BatteryMonitor(mContext, null);
         }
         try {
             Power power = mBatteryMonitor.collect(null, 0, null);

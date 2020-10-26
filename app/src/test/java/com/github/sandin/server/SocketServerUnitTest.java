@@ -15,6 +15,7 @@ import com.github.sandin.miniperf.server.proto.ProfileApp;
 import com.github.sandin.miniperf.server.proto.ProfileAppInfo;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.proto.StopProfileReq;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,7 +34,6 @@ public class SocketServerUnitTest {
     private static final String HOST = "127.0.0.1";
     private static final int PORT = 45455;
     private static final String TAG = "SocketTest";
-
     private SocketClient mClient;
 
     @Before
@@ -51,7 +51,7 @@ public class SocketServerUnitTest {
 
     @Test
     public void getMemory() throws Exception {
-        int pid = 26077;
+        int pid = 20363;
 
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetMemoryUsageReq(
                 GetMemoryUsageReq.newBuilder().setPid(pid)).build();
@@ -100,8 +100,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "tv.danmaku.bili";
-        int pid = 28040;
+        String packageName = "com.tencent.tmgp.jxqy";
+        int pid = 20363;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))
@@ -114,6 +114,7 @@ public class SocketServerUnitTest {
                         .addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
                         .addDataTypes(ProfileReq.DataType.FPS)
                         .addDataTypes(ProfileReq.DataType.MEMORY)
+                        .addDataTypes(ProfileReq.DataType.BATTERY)
                 )
                 .build();
         System.out.println("send request: " + request);
@@ -131,6 +132,17 @@ public class SocketServerUnitTest {
             Assert.assertNotNull(profileNtf);
             System.out.println(profileNtf.toString());
         }
+    }
+
+    @Test
+    public void stopTest() throws IOException {
+        MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setStopProfileReq(StopProfileReq.newBuilder().build()).build();
+        System.out.println("send request: " + request);
+        mClient.sendMessage(request.toByteArray());
+        byte[] rsp = mClient.readMessage();
+        System.out.println("recv response bytes length: " + rsp.length);
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(rsp);
+        System.out.println("recv response: " + response);
     }
 
 }

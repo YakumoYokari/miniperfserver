@@ -4,6 +4,8 @@ import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.CpuInfo;
 import com.github.sandin.miniperf.server.bean.TargetApp;
+import com.github.sandin.miniperf.server.proto.CoreUsage;
+import com.github.sandin.miniperf.server.proto.CpuFreq;
 import com.github.sandin.miniperf.server.proto.CpuUsage;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 
@@ -33,11 +35,22 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
 //            Log.i(TAG, "CPUI app:"+stat.normalized_app_usage);
 //            Log.i(TAG, "CPUI :"+stat.normalized_usage);
 //        } else {
+
         cpuInfo.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.app_usage).setTotalUsage(stat.usage).build());
-        if (data!=null)
-            data.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.app_usage).setTotalUsage(stat.usage));
-        Log.i(TAG, "CPUI app:" + stat.app_usage);
-        Log.i(TAG, "CPUI :" + stat.usage);
+        data.setCpuUsage(CpuUsage.newBuilder().setAppUsage(stat.app_usage).setTotalUsage(stat.usage));
+
+
+        CoreUsage.Builder a = CoreUsage.newBuilder();
+        CpuFreq.Builder b = CpuFreq.newBuilder();
+        for (int i = 0; i < stat.cores; ++i) {
+            a.addCoreUsage(stat.usage_per_cpu[i]);
+            b.addCpuFreq((int) stat.current_freq[i]);
+        }
+        cpuInfo.setCoreUsage(a.build());
+        data.setCoreUsage(a.build());
+        cpuInfo.setCpuFreq(b.build());
+        data.setCpuFreq(b.build());
+
         return cpuInfo;
     }
 
@@ -49,7 +62,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
 //    }
 
     private void cpu_fetch_loop(String packageName, int ppid) throws FileNotFoundException, InterruptedException {
-        Log.i(TAG, "pid" + ppid);
+//        Log.i(TAG, "pid"+ppid);
 //        int pid = AndroidProcessUtils.getPid(packageName);
         int pid = ppid;
         Log.i(TAG, "cpu_fetch_loop: packageName" + packageName);
@@ -59,7 +72,6 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         stat.update();
         stat.print();
         //st.Println("CPUSTAT");
-        Log.i(TAG, "cpu_fetch_loop: CPUSTAT");
             /*
             File myObj = new File("/proc/stat");
             Scanner myReader = new Scanner(myObj);

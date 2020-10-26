@@ -1,13 +1,12 @@
 package com.github.sandin.miniperf.server.monitor;
 
-import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Debug;
+import android.os.Looper;
 import android.util.Log;
 
-import com.genymobile.scrcpy.wrappers.ActivityManager;
-import com.genymobile.scrcpy.wrappers.ServiceManager;
-import com.github.sandin.miniperf.server.MiniPerfServer;
+import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MemoryDetail;
@@ -25,10 +24,11 @@ public class MemoryMonitor implements IMonitor<Memory> {
 
     private final ActivityManager mActivityManager;
 
-    @SuppressLint("ServiceCast")
     public MemoryMonitor() {
+        Looper.prepare();
+        Context context = ActivityThread.systemMain().getSystemContext();
         //mActivityManager = new ServiceManager().getActivityManager();
-        mActivityManager = (ActivityManager)MiniPerfServer.context.getSystemService(Context.ACTIVITY_SERVICE);
+        mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
     }
 
     /**
@@ -57,7 +57,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
         Log.v(TAG, "collect memory data: " + targetApp + ", timestamp=" + timestamp);
         Memory.Builder memoryBuilder = Memory.newBuilder();
         MemoryDetail.Builder memoryDetailBuilder = MemoryDetail.newBuilder();
-        Log.i(TAG,"collect process memory info");
+        Log.i(TAG, "collect process memory info");
         //TODO can't get memory info
         Debug.MemoryInfo[] processMemoryInfo = mActivityManager.getProcessMemoryInfo(new int[]{targetApp.getPid()});
         Log.i(TAG, "process memory info size : " + processMemoryInfo.length);

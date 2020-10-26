@@ -2,6 +2,7 @@ package com.github.sandin.miniperf.server.util;
 
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
 import com.genymobile.scrcpy.wrappers.ServiceManager;
 
@@ -25,6 +26,7 @@ public class ReadSystemInfoUtils {
     public static List<String> readInfoFromSystemFile(String[] systemFilePaths) {
         List<String> content = new LinkedList<>();
         for (String path : systemFilePaths) {
+            Log.i("MiniperfServer", "now read file path is " + path);
             File systemFile = new File(path);
             Scanner scanner = null;
             if (systemFile.exists()) {
