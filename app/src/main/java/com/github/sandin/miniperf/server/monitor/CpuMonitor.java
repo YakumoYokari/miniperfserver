@@ -8,6 +8,7 @@ import com.github.sandin.miniperf.server.proto.CoreUsage;
 import com.github.sandin.miniperf.server.proto.CpuFreq;
 import com.github.sandin.miniperf.server.proto.CpuUsage;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
