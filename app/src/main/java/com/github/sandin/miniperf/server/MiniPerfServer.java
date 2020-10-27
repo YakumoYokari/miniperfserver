@@ -98,7 +98,7 @@ public class MiniPerfServer implements SocketServer.Callback  {
             mContext = ActivityThread.systemMain().getSystemContext();
 
             // ONLY FOR TEST
-            if (arguments.has("test")) {
+            if (arguments.has("command")) {
                 try {
                     test(arguments);
                 } catch (Exception e) {
@@ -125,9 +125,26 @@ public class MiniPerfServer implements SocketServer.Callback  {
                 case "screenshot":
                     ScreenshotMonitor screenshotMonitor = new ScreenshotMonitor();
                     screenshotMonitor.takeScreenshot(System.out);
+                    break;
                 case "network":
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
                     networkMonitor.getTraffics(0);
+                    break;
+                case "appinfo":
+                    AppListMonitor appListMonitor = new AppListMonitor(mContext);
+                    List<AppInfo> appList = appListMonitor.getAppInfo();
+                    for (AppInfo app : appList) {
+                        System.out.println("app: " + app.getLabel());
+                        System.out.println("package name: " + app.getPackageName());
+                        System.out.println("version: " + app.getVersion());
+                        System.out.println("uid: " + app.getPid());
+                        System.out.println("system app: " + app.getIsSystemApp());
+                        System.out.println("");
+                    }
+                    break;
+                default:
+                    System.out.println("[Error] unknown command: " + command);
+                    break;
             }
         } else {
             System.out.println("[Error] no command");
@@ -260,7 +277,7 @@ public class MiniPerfServer implements SocketServer.Callback  {
 
     private byte[] handleGetAppInfoReq() {
         if (mAppListMonitor == null) {
-            mAppListMonitor = new AppListMonitor();
+            mAppListMonitor = new AppListMonitor(mContext);
         }
         try {
             List<AppInfo> appInfoList = mAppListMonitor.collect(null, 0, null);
