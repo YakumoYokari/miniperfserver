@@ -20,8 +20,12 @@ import com.github.sandin.miniperf.server.proto.StopProfileReq;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -29,16 +33,32 @@ import java.util.List;
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
+@RunWith(value = Parameterized.class)
 public class SocketServerUnitTest {
-
-    private static final String HOST = "127.0.0.1";
-    private static final int PORT = 45455;
     private static final String TAG = "SocketTest";
+
     private SocketClient mClient;
+
+    private final String mHost;
+    private final int mPort;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+                { "127.0.0.1", 45455 },     // USB Mode: unix domain socket -> adb forward -> 45455
+                { "10.11.251.127", 43300 }, // Wifi Mode: <phone ip>:<server port>
+        });
+    }
+
+    public SocketServerUnitTest(String host, int port) {
+        mHost = host;
+        mPort = port;
+    }
 
     @Before
     public void setUp() throws Exception {
-        mClient = new SocketClient(HOST, PORT);
+        System.out.println("Socket Server: " + mHost + ":" + mPort);
+        mClient = new SocketClient(mHost, mPort);
     }
 
     @Test

@@ -67,7 +67,7 @@ public class SocketServer {
     /**
      * Thread pool for client connections
      */
-    private static Executor sThreadPool = Executors.newFixedThreadPool(3);
+    private final Executor mThreadPool;
 
     /**
      * Callback listener
@@ -149,22 +149,30 @@ public class SocketServer {
      * Create a unix domain socket server
      *
      * @param socketName unix domain socket name
+     * @param messageHandler callback
+     * @param maxClientNum max client number
      */
-    public SocketServer(@NonNull String socketName, @Nullable Callback messageHandler) {
+    public SocketServer(@NonNull String socketName, @Nullable Callback messageHandler, int maxClientNum) {
         mSocketName = socketName;
         mSocketType = TYPE_LOCAL_SOCKET;
         mCallback = messageHandler;
+
+        mThreadPool = Executors.newFixedThreadPool(maxClientNum);
     }
 
     /**
      * Create a normal socket server
      *
      * @param socketPort socket port to listen
+     * @param messageHandler callback
+     * @param maxClientNum max client number
      */
-    public SocketServer(int socketPort, @Nullable Callback messageHandler) {
+    public SocketServer(int socketPort, @Nullable Callback messageHandler, int maxClientNum) {
         mSocketPort = socketPort;
         mSocketType = TYPE_NORMAL_SOCKET;
         mCallback = messageHandler;
+
+        mThreadPool = Executors.newFixedThreadPool(maxClientNum);
     }
 
     /**
@@ -192,7 +200,7 @@ public class SocketServer {
             while (true) {
                 ClientConnection connection = acceptAndCreateNewConnection();
                 if (connection != null) {
-                    sThreadPool.execute(connection); // handle connection
+                    mThreadPool.execute(connection); // handle connection
                     mConnectionsLock.writeLock().lock();
                     try {
                         mConnections.add(connection);
