@@ -8,12 +8,10 @@ import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
+import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -49,6 +47,7 @@ public class NetworkMonitor implements IMonitor<Network> {
     private Context mContext;
     private int lastRxBytes = 0;
     private int lastTxBytes = 0;
+    private boolean getFromFile = true;
 
     public NetworkMonitor(Context context) {
         mContext = context;
@@ -73,49 +72,35 @@ public class NetworkMonitor implements IMonitor<Network> {
     }
 
     public Network getTraffics(int uid) throws IOException {
-//        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
+        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         File networkFile = new File(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         Network.Builder networkBuilder = Network.newBuilder();
         int rxBytes = 0, txBytes = 0;
-        List<String> content = new LinkedList<>();
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new FileReader(networkFile));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println("line: " + line);
-                content.add(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException ignore) {
-                }
-            }
-        }
         Log.i(TAG, "collect traffics info size : " + content.size());
         if (content.size() > 1) {
             Log.i(TAG, content.toString());
             Log.i(TAG, "content size is : " + content.size());
             for (String line : content) {
-                String[] parts = line.split("\t");
+                if (line == content.get(0))
+                    continue;
+                String[] parts = line.split("\\s+");
+                System.out.println("now pid is : "+parts[3]);
                 if (Integer.parseInt(parts[3]) == uid && parts[1] != "lo") {
                     rxBytes += Integer.parseInt(parts[5]);
                     txBytes += Integer.parseInt(parts[7]);
                 }
             }
         }
+        System.out.println("rxBytes : " + rxBytes + " txBytes : " + txBytes);
         if (lastRxBytes == 0 || lastTxBytes == 0) {
             lastRxBytes = rxBytes;
             lastTxBytes = txBytes;
             networkBuilder.setDownload(0);
             networkBuilder.setUpload(0);
+        } else {
+            networkBuilder.setDownload(rxBytes - lastRxBytes);
+            networkBuilder.setUpload(txBytes - lastTxBytes);
         }
-        networkBuilder.setDownload(rxBytes - lastRxBytes);
-        networkBuilder.setUpload(txBytes - lastTxBytes);
         return networkBuilder.build();
     }
 

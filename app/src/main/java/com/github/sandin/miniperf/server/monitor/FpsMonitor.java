@@ -156,6 +156,7 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         FpsInfo fpsInfo = new FpsInfo();
         List<Long> newFrameTimes = getNewFrameTimes(targetApp.getPackageName());
         Log.i(TAG, "collect new frame times success : " + newFrameTimes);
+        mElapsedTimes.clear();
         if (newFrameTimes == null) {
             Log.v(TAG, "no refresh!");
             fpsInfo.setFps(FPS.newBuilder().build());
@@ -165,7 +166,7 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
 
         List<Long> frameTimes = new LinkedList<>();
         for (int i = 1; i < newFrameTimes.size(); i++) {
-            //TODO 单位需要修改
+            //TODO
             frameTimes.add((newFrameTimes.get(i) - newFrameTimes.get(i - 1)) / 10000);
         }
 
@@ -182,7 +183,6 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         }
         Log.i(TAG, "collect fps info success : " + fpsInfo.toString());
         //clear cache
-        mElapsedTimes.clear();
         return fpsInfo;
     }
 

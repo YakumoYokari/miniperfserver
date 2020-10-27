@@ -46,7 +46,7 @@ public class SocketServerUnitTest {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
                 { "127.0.0.1", 45455 },     // USB Mode: unix domain socket -> adb forward -> 45455
-                { "10.11.251.127", 43300 }, // Wifi Mode: <phone ip>:<server port>
+                //{ "10.11.251.98", 43300 }, // Wifi Mode: <phone ip>:<server port>
         });
     }
 
@@ -121,7 +121,7 @@ public class SocketServerUnitTest {
     @Test
     public void profileReqTest() throws IOException {
         String packageName = "com.xiaomi.shop";
-        int pid = 25692;
+        int pid = 13642;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))

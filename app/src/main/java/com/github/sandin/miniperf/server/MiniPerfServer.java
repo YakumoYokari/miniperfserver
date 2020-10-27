@@ -9,6 +9,7 @@ import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
+import com.github.sandin.miniperf.server.monitor.FpsMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
@@ -120,6 +121,9 @@ public class MiniPerfServer implements SocketServer.Callback  {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
         String command = arguments.getAsString("command", null);
+        String packageName = "tv.danmaku.bili";
+        int pid =AndroidProcessUtils.getPid(mContext,packageName);
+        TargetApp targetApp = new TargetApp(packageName, pid);
         if (command != null) {
             switch (command) {
                 case "screenshot":
@@ -127,7 +131,13 @@ public class MiniPerfServer implements SocketServer.Callback  {
                     screenshotMonitor.takeScreenshot(System.out);
                 case "network":
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
-                    networkMonitor.getTraffics(0);
+                    networkMonitor.getTraffics(pid);
+                case "fps":
+                    FpsMonitor fpsMonitor = new FpsMonitor();
+                    fpsMonitor.collect(targetApp,System.currentTimeMillis(),null);
+                case "battery":
+                    BatteryMonitor batteryMonitor = new BatteryMonitor(mContext, null);
+                    batteryMonitor.collect(targetApp,System.currentTimeMillis(),null);
             }
         } else {
             System.out.println("[Error] no command");
