@@ -132,6 +132,7 @@ public class BatteryMonitor implements IMonitor<Power> {
         if (data != null)
             data.setPower(power);
         Log.v(TAG, dumpPower(power));
+        System.out.println(dumpPower(power));
         return power;
     }
 }

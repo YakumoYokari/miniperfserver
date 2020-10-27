@@ -9,6 +9,7 @@ import androidx.annotation.Nullable;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -261,8 +262,9 @@ public class PerformanceMonitor {
         @Override
         public void run() {
             mFirstTime = SystemClock.uptimeMillis();
-//            mIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
             while (mIsRunning) {
+                Log.i(TAG, System.currentTimeMillis() + " now running state is : " + mIsRunning);
+                mIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
                 long startTime = SystemClock.uptimeMillis();
 //                ProfileNtf collectData = collectData(startTime - mFirstTime);
                 ProfileNtf collectData = collectData(System.currentTimeMillis());
