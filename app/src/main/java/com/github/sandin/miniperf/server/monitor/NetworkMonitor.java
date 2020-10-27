@@ -72,7 +72,7 @@ public class NetworkMonitor implements IMonitor<Network> {
         return sb.toString();
     }
 
-    private Network getTraffics(int uid) throws IOException {
+    public Network getTraffics(int uid) throws IOException {
 //        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         File networkFile = new File(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         Network.Builder networkBuilder = Network.newBuilder();
@@ -83,12 +83,18 @@ public class NetworkMonitor implements IMonitor<Network> {
             reader = new BufferedReader(new FileReader(networkFile));
             String line;
             while ((line = reader.readLine()) != null) {
+                System.out.println("line: " + line);
                 content.add(line);
             }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            reader.close();
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException ignore) {
+                }
+            }
         }
         Log.i(TAG, "collect traffics info size : " + content.size());
         if (content.size() > 1) {

@@ -10,6 +10,7 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
+import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.monitor.ScreenshotMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
@@ -124,6 +125,9 @@ public class MiniPerfServer implements SocketServer.Callback  {
                 case "screenshot":
                     ScreenshotMonitor screenshotMonitor = new ScreenshotMonitor();
                     screenshotMonitor.takeScreenshot(System.out);
+                case "network":
+                    NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
+                    networkMonitor.getTraffics(0);
             }
         } else {
             System.out.println("[Error] no command");
