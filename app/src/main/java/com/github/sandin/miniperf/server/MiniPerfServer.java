@@ -9,7 +9,6 @@ import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
-import com.github.sandin.miniperf.server.monitor.FpsMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
@@ -99,7 +98,7 @@ public class MiniPerfServer implements SocketServer.Callback  {
             mContext = ActivityThread.systemMain().getSystemContext();
 
             // ONLY FOR TEST
-            if (arguments.has("test")) {
+            if (arguments.has("command")) {
                 try {
                     test(arguments);
                 } catch (Exception e) {
@@ -121,23 +120,31 @@ public class MiniPerfServer implements SocketServer.Callback  {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
         String command = arguments.getAsString("command", null);
-        String packageName = "tv.danmaku.bili";
-        int pid =AndroidProcessUtils.getPid(mContext,packageName);
-        TargetApp targetApp = new TargetApp(packageName, pid);
         if (command != null) {
             switch (command) {
                 case "screenshot":
                     ScreenshotMonitor screenshotMonitor = new ScreenshotMonitor();
                     screenshotMonitor.takeScreenshot(System.out);
+                    break;
                 case "network":
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
-                    networkMonitor.getTraffics(pid);
-                case "fps":
-                    FpsMonitor fpsMonitor = new FpsMonitor();
-                    fpsMonitor.collect(targetApp,System.currentTimeMillis(),null);
-                case "battery":
-                    BatteryMonitor batteryMonitor = new BatteryMonitor(mContext, null);
-                    batteryMonitor.collect(targetApp,System.currentTimeMillis(),null);
+                    networkMonitor.getTraffics(0);
+                    break;
+                case "appinfo":
+                    AppListMonitor appListMonitor = new AppListMonitor(mContext);
+                    List<AppInfo> appList = appListMonitor.getAppInfo();
+                    for (AppInfo app : appList) {
+                        System.out.println("app: " + app.getLabel());
+                        System.out.println("package name: " + app.getPackageName());
+                        System.out.println("version: " + app.getVersion());
+                        System.out.println("uid: " + app.getPid());
+                        System.out.println("system app: " + app.getIsSystemApp());
+                        System.out.println("");
+                    }
+                    break;
+                default:
+                    System.out.println("[Error] unknown command: " + command);
+                    break;
             }
         } else {
             System.out.println("[Error] no command");
@@ -270,7 +277,7 @@ public class MiniPerfServer implements SocketServer.Callback  {
 
     private byte[] handleGetAppInfoReq() {
         if (mAppListMonitor == null) {
-            mAppListMonitor = new AppListMonitor();
+            mAppListMonitor = new AppListMonitor(mContext);
         }
         try {
             List<AppInfo> appInfoList = mAppListMonitor.collect(null, 0, null);
