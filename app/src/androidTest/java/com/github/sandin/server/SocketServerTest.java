@@ -35,7 +35,7 @@ public class SocketServerTest {
             public byte[] onMessage(SocketServer.ClientConnection clientConnection, byte[] msg) {
                 return null;
             }
-        });
+        }, 3);
     }
 
     @After
