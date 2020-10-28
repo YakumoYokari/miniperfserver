@@ -12,10 +12,10 @@ import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,9 +30,11 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
     private long mRefreshPeriod;
     private long mLatestSeen = 0;
     private List<Long> mElapsedTimes = new ArrayList<>();
-    private Set<ProfileReq.DataType> mNeedDataTypes = new LinkedHashSet<>();
     private long mLastTime = 0;
 
+    private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
+
+    //TODO 不是所有都以SurfaceView开头 bug
     private Pattern mLayerNamePattern = Pattern.compile("^SurfaceView - ([^/]+)\\/[^#]*#\\d$");
 
     private boolean getLayerName(@NonNull String packageName) {
@@ -42,6 +44,14 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
             if (match.find() && packageName.equals(match.group(1))) {
                 mLayerName = line.trim();
                 return true;
+            }
+        }
+        if (mLayerName == null){
+            for (String line : result){
+                if (line.startsWith(packageName+'/')){
+                    mLayerName = line;
+                    return true;
+                }
             }
         }
         return false;
@@ -121,7 +131,6 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         }
     }
 
-    //TODO 存在单位问题
     private JankInfo checkJank(List<Long> frameTimes) {
         JankInfo jankInfo = new JankInfo();
         int jank = 0;
@@ -132,10 +141,10 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         for (Long frameTime : frameTimes) {
             Double time = (double) frameTime;
             if (first_1s_frame_time != -1 && first_2s_frame_time != -1 && first_3s_frame_time != -1) {
-                double average = (first_1s_frame_time + first_2s_frame_time + first_3s_frame_time) / (3.0 * 2.0) + 2.0;
-                if ((average > 0) && (time > 85.33333333333333)) {
+                double average = (first_1s_frame_time + first_2s_frame_time + first_3s_frame_time) / 3.0 * 2.0 + 2.0;
+                if ((average > 0) && (time > 8533.333333333333)) {
                     jank++;
-                    if (time.compareTo(12700.0) > 0)
+                    if (time > 12700)
                         bigJank++;
                     first_1s_frame_time = -1;
                     first_2s_frame_time = -1;
@@ -152,11 +161,6 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         return jankInfo;
     }
 
-    public boolean addNeedDataType(ProfileReq.DataType dataType) {
-        boolean result = mNeedDataTypes.add(dataType);
-        return result;
-    }
-
     @Override
     public FpsInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.i(TAG, "start collect fps info");
@@ -171,12 +175,12 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         Log.i(TAG, "collect new frame times success : " + newFrameTimes.size() + " " + newFrameTimes);
 
 
-
         List<Long> frameTimes = new LinkedList<>();
         for (int i = 1; i < newFrameTimes.size(); i++) {
             long nanoseconds = newFrameTimes.get(i) - newFrameTimes.get(i - 1);
             frameTimes.add(nanoseconds / 1000 / 10); // ms * 100
         }
+        //jank
         JankInfo jankInfo = checkJank(frameTimes);
 
         float fps = (frameTimes.size())  /* frame count */
@@ -186,15 +190,27 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         fpsInfo.setFps(FPS.newBuilder().setFps(fps).build());
         fpsInfo.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes).build());
         if (data != null) {
-            if (mNeedDataTypes.contains(ProfileReq.DataType.FPS))
+            if (isDataTypeEnabled(ProfileReq.DataType.FPS)) {
                 data.setFps(FPS.newBuilder().setFps(fps).setJank(jankInfo.getJank()).setBigJank(jankInfo.getBigJank()));
-            if (mNeedDataTypes.contains(ProfileReq.DataType.FRAME_TIME))
+            }
+            if (isDataTypeEnabled(ProfileReq.DataType.FRAME_TIME)) {
                 data.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes));
+            }
         }
         Log.i(TAG, "collect fps info success : " + fpsInfo.toString());
         //clear cache
         mElapsedTimes.clear();
         return fpsInfo;
+    }
+
+    private boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
+        return mDataTypes.containsKey(dataType) && mDataTypes.get(dataType);
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        mDataTypes.clear();
+        mDataTypes.putAll(dataTypes);
     }
 
 }

@@ -8,10 +8,12 @@ import com.github.sandin.miniperf.server.proto.CoreUsage;
 import com.github.sandin.miniperf.server.proto.CpuFreq;
 import com.github.sandin.miniperf.server.proto.CpuUsage;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
-import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class CpuMonitor implements IMonitor<CpuInfo> {
@@ -19,6 +21,8 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
     private static final String TAG = "CpuMonitor";
 
     private CPUStat stat;
+
+    private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
 
     public CpuMonitor(int pid) {
         stat = new CPUStat(pid);
@@ -491,6 +495,16 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 System.out.println();
             }
         }
+    }
+
+    private boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
+        return mDataTypes.containsKey(dataType) && mDataTypes.get(dataType);
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        mDataTypes.clear();
+        mDataTypes.putAll(dataTypes);
     }
 }
 

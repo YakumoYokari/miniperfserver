@@ -1,7 +1,10 @@
 package com.github.sandin.miniperf.server.session;
 
+import androidx.annotation.NonNull;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
+import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
@@ -9,8 +12,6 @@ import com.github.sandin.miniperf.server.server.SocketServer;
 
 import java.io.IOException;
 import java.util.List;
-
-import androidx.annotation.NonNull;
 
 /**
  * Profile Session
@@ -26,9 +27,9 @@ public final class Session implements PerformanceMonitor.Callback {
     /**
      * Session
      *
-     * @param sessionId session id
+     * @param sessionId  session id
      * @param connection client connection
-     * @param monitor profile monitor
+     * @param monitor    profile monitor
      */
     public Session(int sessionId,
                    @NonNull SocketServer.ClientConnection connection,
@@ -60,7 +61,7 @@ public final class Session implements PerformanceMonitor.Callback {
     /**
      * implement of Monitor's Callback, bridge between {@link SocketServer.ClientConnection} and {@link PerformanceMonitor}
      * receive new data from monitor, and send it to the client
-     *
+     * <p>
      * +---------+   data   +---------+   bytes  +--------+
      * | Monitor |  +-----> | Session |  +-----> | Client |
      * +---------+          +---------+          +--------+
@@ -73,6 +74,17 @@ public final class Session implements PerformanceMonitor.Callback {
         } catch (IOException e) {
             e.printStackTrace(); // TODO: socket closed
         }
+    }
+
+    @Override
+    public void sendAppClosedNTF(AppClosedNTF appClosedNTF) {
+        try {
+            MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setAppClosedNTF(appClosedNTF).build();
+            mConnection.sendMessage(response.toByteArray());
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
     }
 
     public int getSessionId() {
