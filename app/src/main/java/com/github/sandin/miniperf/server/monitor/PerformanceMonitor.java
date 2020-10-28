@@ -179,7 +179,7 @@ public class PerformanceMonitor {
      *
      * @param dataTypes need to toggle data types
      */
-    private void toggleInterestingDataTypes(List<ProfileReq.DataType> dataTypes) {
+    public void toggleInterestingDataTypes(ProfileReq.DataType... dataTypes) {
         for (ProfileReq.DataType dataType : dataTypes) {
             if (mDataTypes.containsKey(dataType)) {
                 mDataTypes.put(dataType, !mDataTypes.get(dataType)); // toggle

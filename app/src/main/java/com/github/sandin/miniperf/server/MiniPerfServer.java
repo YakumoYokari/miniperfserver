@@ -206,7 +206,7 @@ public class MiniPerfServer implements SocketServer.Callback  {
         int dataTypeNum = request.getDataType();
         ProfileReq.DataType dataType = ProfileReq.DataType.forNumber(dataTypeNum);
         PerformanceMonitor monitor = session.getMonitor();
-        monitor.setMonitorFiledStatus(dataType, !monitor.getMonitorFiledStatus(dataType));
+        monitor.toggleInterestingDataTypes(dataType);
     }
 
     private byte[] handleStopProfileReq() {
