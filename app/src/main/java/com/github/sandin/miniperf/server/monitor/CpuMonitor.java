@@ -218,20 +218,22 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
-        private boolean _read_current_freq(int x) {
+        private boolean _read_current_freq(int x){
             File f = new File("/sys/devices/system/cpu/cpu" + x + "/cpufreq/scaling_cur_freq");
             Scanner scn = null;
-            try {
+            try{
                 scn = new Scanner(f);
                 current_freq[x] = scn.nextLong();
-            } catch (FileNotFoundException e) {
-                return false;
+            } catch(FileNotFoundException e){
+                // e.printStackTrace();
+                current_freq[x] = 0;
+                return true;
             } finally {
-                if (scn != null) {
+                if (scn != null){
                     scn.close();
                 }
             }
-            System.out.println("[DEBUG] current_freq[" + x + "] = " + current_freq[x] + "/" + max_freq[x]);
+            System.out.println("[DEBUG] current_freq[" + x +"] = " + current_freq[x] + "/" + max_freq[x]);
             return true;
         }
 
@@ -353,11 +355,14 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 }
             }
 
-            for (int i = 0; i < cores; ++i) {
-                if (have_current_freq) {
-                    if (!_read_current_freq(i)) {
-                        have_current_freq = false;
-                    }
+            if (have_current_freq){
+                int offline = 0;
+                for(int i = 0; i < cores; ++i){
+                    _read_current_freq(i);
+                    if (current_freq[i] == 0) offline++;
+                }
+                if (offline == cores){
+                    have_current_freq = false;
                 }
             }
 
