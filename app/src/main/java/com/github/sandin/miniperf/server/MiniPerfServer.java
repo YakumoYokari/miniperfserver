@@ -119,6 +119,10 @@ public class MiniPerfServer implements SocketServer.Callback  {
     }
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
+        String packageName = "com.xiaomi.shop";
+        int pid = 5658;
+        int uid = AndroidProcessUtils.getUid(mContext,packageName);
+        TargetApp targetApp = new TargetApp(packageName, uid);
         String command = arguments.getAsString("command", null);
         if (command != null) {
             switch (command) {
@@ -128,7 +132,7 @@ public class MiniPerfServer implements SocketServer.Callback  {
                     break;
                 case "network":
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
-                    networkMonitor.getTraffics(0);
+                    networkMonitor.collect(targetApp,System.currentTimeMillis(),null);
                     break;
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);

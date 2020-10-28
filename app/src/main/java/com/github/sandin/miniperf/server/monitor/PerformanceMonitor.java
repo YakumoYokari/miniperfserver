@@ -7,6 +7,7 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
+import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
@@ -97,6 +98,12 @@ public class PerformanceMonitor {
     private void notifyCallbacks(ProfileNtf data) {
         for (Callback callback : mCallback) {
             callback.onUpdate(data);
+        }
+    }
+
+    private void notifySendCloseNtf(AppClosedNTF ntf){
+        for (Callback callback : mCallback) {
+            callback.sendAppClosedNTF(ntf);
         }
     }
 
@@ -216,6 +223,10 @@ public class PerformanceMonitor {
 
             // TODO: unregisterMonitors
             mMonitors.clear();
+            //清除状态
+            for (ProfileReq.DataType dataType : mMonitorStatus.keySet()) {
+                mMonitorStatus.put(dataType, false);
+            }
 
             if (mThread != null) {
                 try {
@@ -253,6 +264,7 @@ public class PerformanceMonitor {
          */
         void onUpdate(ProfileNtf data);
 
+        void sendAppClosedNTF(AppClosedNTF appClosedNTF);
     }
 
     private class MonitorWorker implements Runnable {
@@ -264,12 +276,13 @@ public class PerformanceMonitor {
             mFirstTime = SystemClock.uptimeMillis();
             while (mIsRunning) {
                 Log.i(TAG, System.currentTimeMillis() + " now running state is : " + mIsRunning);
-                mIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
                 long startTime = SystemClock.uptimeMillis();
 //                ProfileNtf collectData = collectData(startTime - mFirstTime);
                 ProfileNtf collectData = collectData(System.currentTimeMillis());
                 notifyCallbacks(collectData); // send data
-
+                if (AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPid())) {
+                    break;
+                }
                 mTickCount++;
                 long costTime = SystemClock.uptimeMillis() - startTime;
                 long sleepTime = mIntervalMs - costTime - 2;  // | costTime | sleepTime |
@@ -281,6 +294,9 @@ public class PerformanceMonitor {
                     Log.w(TAG, "Collect data take too many time, no need to sleep, cost time=" + costTime);
                 }
             }
+            Log.i(TAG, "application is close !");
+            stop();
+            notifySendCloseNtf(AppClosedNTF.newBuilder().build());
         }
     }
 

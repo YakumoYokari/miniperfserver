@@ -1,6 +1,13 @@
 package com.github.sandin.miniperf.server.monitor;
 
+import android.annotation.SuppressLint;
+import android.app.usage.NetworkStats;
+import android.app.usage.NetworkStatsManager;
 import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.TrafficStats;
+import android.os.Build;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -8,10 +15,12 @@ import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
-import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -42,18 +51,20 @@ public class NetworkMonitor implements IMonitor<Network> {
     19 tx_udp_packets ： 发送的udp包数
     20 tx_other_bytes ： 发送的其他类型字节数
     21 tx_other_packets ： 发送的其他类型包数*/
+
     private static final String TAG = "NetworkMonitor";
-    //private NetworkStatsManager mNetworkStatsManager;
+    private NetworkStatsManager mNetworkStatsManager;
     private Context mContext;
     private int lastRxBytes = 0;
     private int lastTxBytes = 0;
-    private boolean getFromFile = true;
+    //能否通过配置文件读取 高版本安卓没有这个配置文件
+    private boolean flag = true;
 
     public NetworkMonitor(Context context) {
         mContext = context;
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            mNetworkStatsManager = (NetworkStatsManager) context.getSystemService(Context.NETWORK_STATS_SERVICE);
-//        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mNetworkStatsManager = (NetworkStatsManager) context.getSystemService(Context.NETWORK_STATS_SERVICE);
+        }
     }
 
     /**
@@ -71,27 +82,84 @@ public class NetworkMonitor implements IMonitor<Network> {
         return sb.toString();
     }
 
-    public Network getTraffics(int uid) throws IOException {
-        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
+    private Network getTrafficsFromTrafficStats(int uid) {
+        Network.Builder network = Network.newBuilder();
+        long download = TrafficStats.getUidRxBytes(uid);
+        long upload = TrafficStats.getUidTxBytes(uid);
+        if (download == -1 || upload == -1) {
+            flag = false;
+        }
+        network.setUpload((int) upload);
+        network.setDownload((int) download);
+        return network.build();
+    }
+
+    @SuppressLint("NewApi")
+    public Network getTrafficsFromNetworkStatsManager(int uid) throws RemoteException {
+        Network.Builder networkBuilder = Network.newBuilder();
+        String subId = AndroidProcessUtils.getSubscriberId(mContext);
+        long summaryRx = 0;
+        long summaryTx = 0;
+        NetworkStats.Bucket summaryBucket = new NetworkStats.Bucket();
+        int networkType = getNetworkType();
+        System.out.println("network type : " + networkType);
+        NetworkStats networkStats = mNetworkStatsManager
+                .queryDetailsForUid(networkType, subId, System.currentTimeMillis() - 10 * 60 * 1000, System.currentTimeMillis(), uid);
+        while (networkStats.hasNextBucket()) {
+            networkStats.getNextBucket(summaryBucket);
+            summaryRx += summaryBucket.getRxBytes();
+            summaryTx += summaryBucket.getTxBytes();
+        }
+        System.out.println("summaryRx : " + summaryRx + " summaryTx : " + summaryTx);
+        networkBuilder.setDownload((int) summaryRx);
+        networkBuilder.setUpload((int) summaryTx);
+        return networkBuilder.build();
+    }
+
+    @SuppressLint("MissingPermission")
+    private int getNetworkType() {
+        ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        return cm.getActiveNetworkInfo().getType();
+    }
+
+    private Network getTrafficsFromSystemFile(int uid) {
+//        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         File networkFile = new File(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         Network.Builder networkBuilder = Network.newBuilder();
         int rxBytes = 0, txBytes = 0;
+        List<String> content = new LinkedList<>();
+        BufferedReader reader = null;
+        try {
+            reader = new BufferedReader(new FileReader(networkFile));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println("line: " + line);
+                content.add(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if (reader != null) {
+                try {
+                    reader.close();
+                } catch (IOException ignore) {
+                }
+            }
+        }
         Log.i(TAG, "collect traffics info size : " + content.size());
         if (content.size() > 1) {
             Log.i(TAG, content.toString());
             Log.i(TAG, "content size is : " + content.size());
             for (String line : content) {
-                if (line == content.get(0))
+                if (line.equals(content.get(0)))
                     continue;
                 String[] parts = line.split("\\s+");
-                System.out.println("now pid is : "+parts[3]);
                 if (Integer.parseInt(parts[3]) == uid && parts[1] != "lo") {
                     rxBytes += Integer.parseInt(parts[5]);
                     txBytes += Integer.parseInt(parts[7]);
                 }
             }
         }
-        System.out.println("rxBytes : " + rxBytes + " txBytes : " + txBytes);
         if (lastRxBytes == 0 || lastTxBytes == 0) {
             lastRxBytes = rxBytes;
             lastTxBytes = txBytes;
@@ -104,50 +172,36 @@ public class NetworkMonitor implements IMonitor<Network> {
         return networkBuilder.build();
     }
 
-//    //TODO getSubscribeId和使用networkStatsManager时出现权限问题
-//    @SuppressLint("MissingPermission")
-//    private TrafficInfo getTraffics(final int uid) throws RemoteException {
-//        TrafficInfo trafficInfo = new TrafficInfo();
-//        if (Build.VERSION.SDK_INT < 23) {
-//        long download = TrafficStats.getUidRxBytes(uid);
-//        long upload = TrafficStats.getUidTxBytes(uid);
-//        trafficInfo.setDownload(download);
-//        trafficInfo.setUpload(upload);
-//        } else {
-//            String subscriberId = AndroidProcessUtils.getSubscriberId(mContext);
-//            ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-//            int netType = cm.getActiveNetworkInfo().getType();
-//            NetworkStats.Bucket bucket = new NetworkStats.Bucket();
-//            NetworkStats networkStats = mNetworkStatsManager.querySummary(netType, subscriberId, System.currentTimeMillis() - 60 * 1000, System.currentTimeMillis());
-//            long summaryRx = 0;
-//            long summaryTx = 0;
-//            while (networkStats.hasNextBucket()) {
-//                networkStats.getNextBucket(bucket);
-//                int summaryUid = bucket.getUid();
-//                if (uid == summaryUid) {
-//                    summaryRx += bucket.getRxBytes();
-//                    summaryTx += bucket.getTxBytes();
-//                }
-//            }
-//            trafficInfo.setDownload(summaryRx);
-//            trafficInfo.setUpload(summaryTx);
-//        }
-//        return trafficInfo;
-//    }
 
     @Override
     public Network collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect traffics data: timestamp=" + timestamp);
         int uid = AndroidProcessUtils.getUid(mContext, targetApp.getPackageName());
-        Network traffics = getTraffics(uid);
-        Log.v(TAG, dumpTraffics(traffics));
-        if (data != null) {
-            data.setNetwork(Network.newBuilder()
-                    .setDownload(traffics.getDownload())
-                    .setUpload(traffics.getUpload())
-                    .build()
-            );
+        Network.Builder networkBuilder = Network.newBuilder();
+        Network trafficInfo = getTrafficsFromSystemFile(uid);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//        trafficInfo = getTrafficsFromNetworkStatsManager(uid);
+//        } else {
+//            trafficInfo = getTrafficsFromTrafficStats(uid);
+//        }
+//        trafficInfo = getTrafficsFromTrafficStats(uid);
+        if (trafficInfo.getDownload() >= 0 && trafficInfo.getUpload() >= 0) {
+            if (lastRxBytes == 0 || lastTxBytes == 0) {
+                networkBuilder.setUpload(0);
+                networkBuilder.setDownload(0);
+            } else {
+                networkBuilder.setUpload(trafficInfo.getDownload() - lastRxBytes);
+                networkBuilder.setDownload(trafficInfo.getUpload() - lastTxBytes);
+            }
+            lastRxBytes = trafficInfo.getDownload();
+            lastTxBytes = trafficInfo.getUpload();
         }
-        return traffics;
+//        System.out.println("download : "+ networkBuilder.getDownload());
+//        System.out.println("upload : "+networkBuilder.getUpload());
+        Log.i(TAG, "download : " + networkBuilder.getDownload());
+        Log.i(TAG, "upload : " + networkBuilder.getUpload());
+        System.out.println(networkBuilder.getDownload());
+        System.out.println(networkBuilder.getUpload());
+        return networkBuilder.build();
     }
 }

@@ -11,6 +11,7 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MemoryDetail;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.VirtualMemory;
 import com.github.sandin.miniperf.server.util.ReflectionUtils;
 
 import java.io.BufferedReader;
@@ -154,6 +155,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
         Log.v(TAG, dumpMemory(memory));
         if (data != null) {
             data.setMemory(memory);
+            data.setVirtualMemory(VirtualMemory.newBuilder().setVirtualMemory(Math.round((float) vss / 1024)).build());
         }
         return memory;
     }
