@@ -187,7 +187,13 @@ public final class SurfaceControl {
         try {
             Method method = getScreenshotMethod();
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
-                return (Bitmap) method.invoke(null, width, height);
+                if(width>height)
+                {
+                    return (Bitmap) method.invoke(null, height, width);
+                }
+                else{
+                    return (Bitmap) method.invoke(null, width, height);
+                }
             } else {
                 return (Bitmap) method.invoke(null, new Rect(), width, height, rotation);
             }
