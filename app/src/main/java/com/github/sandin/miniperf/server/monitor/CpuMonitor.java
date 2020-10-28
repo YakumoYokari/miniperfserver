@@ -12,9 +12,11 @@ import com.github.sandin.miniperf.server.proto.ProfileReq;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.io.FileReader;
 
 public class CpuMonitor implements IMonitor<CpuInfo> {
 
@@ -185,6 +187,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             current_freq = new long[cores];
 
             allow_normalization = true;
+            int offline = 0;
             for (int i = 0; i < cores; ++i) {
                 File f = new File("/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq");
                 Scanner scn = null;
@@ -192,13 +195,16 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                     scn = new Scanner(f);
                     max_freq[i] = scn.nextLong();
                 } catch (FileNotFoundException e) {
-                    allow_normalization = false;
+                    // allow_normalization = false;
+                    offline++;
                 } finally {
                     if (scn != null) {
                         scn.close();
                     }
                 }
             }
+            if (offline == cores)
+                allow_normalization = false;
 
             normalized_usage_per_cpu = new float[cores];
 
@@ -208,7 +214,36 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             System.out.println("[DEBUG] allow_normalization = " + allow_normalization);
         }
 
-        private boolean _read_app(Scanner scn) {
+        private String _read_file(String path){
+            FileReader fr = null;
+
+            try {
+                StringBuilder sb = new StringBuilder();
+
+                // Create an input stream
+                fr = new FileReader(path);
+
+                int data;
+                // Read a character and append it to string builder one by one
+                while ((data = fr.read()) != -1) {
+                    sb.append((char) data);
+                }
+                // System.out.println(sb.toString());
+                return sb.toString();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    // Close the input stream
+                    if (fr != null) fr.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return null;
+        }
+
+        private boolean _read_app(Scanner scn){
             if (!scn.hasNextLine()) return false;
             String line = scn.nextLine();
             // System.out.println("[DEBUG]" + line);
@@ -222,12 +257,35 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
-        private boolean _read_current_freq(int x){
-            File f = new File("/sys/devices/system/cpu/cpu" + x + "/cpufreq/scaling_cur_freq");
+        private boolean _read_max_freq(int x){
+            String filename = "/sys/devices/system/cpu/cpu" + x + "/cpufreq/cpuinfo_max_freq";
+            File f = new File(filename);
             Scanner scn = null;
             try{
                 scn = new Scanner(f);
-                current_freq[x] = scn.nextLong();
+                max_freq[x] = scn.nextLong(10);
+            } catch(FileNotFoundException e){
+                return true;
+            } finally {
+                if (scn != null){
+                    scn.close();
+                }
+            }
+            // System.out.println("[DEBUG] max_freq[" + x +"] = " + current_freq[x] + "/" + max_freq[x] + " from " + filename);
+            return true;
+        }
+
+        private boolean _read_current_freq(int x){
+            String filename = "/sys/devices/system/cpu/cpu" + x + "/cpufreq/scaling_cur_freq";
+            File f = new File(filename);
+            Scanner scn = null;
+            current_freq[x] = 0;
+            try{
+                scn = new Scanner(f);
+                Thread.sleep(20);
+                current_freq[x] = scn.nextLong(10);
+            } catch(InterruptedException e){
+                return false;
             } catch(FileNotFoundException e){
                 // e.printStackTrace();
                 current_freq[x] = 0;
@@ -237,25 +295,28 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                     scn.close();
                 }
             }
-            System.out.println("[DEBUG] current_freq[" + x +"] = " + current_freq[x] + "/" + max_freq[x]);
+            if (current_freq[x] > 0 && max_freq[x] == 0){
+                _read_max_freq(x);
+            }
+            System.out.println("[DEBUG] current_freq[" + x +"] = " + current_freq[x] + "/" + max_freq[x] + " from " + filename);
             return true;
         }
 
-        private boolean _read_time_in_state(int x) {
-            File tis = new File("/sys/devices/system/cpu/cpu" + x + "/cpufreq/stats/time_in_state");
+        private boolean _read_time_in_state(int x){
+            File tis = new File("/sys/devices/system/cpu/cpu"+ x + "/cpufreq/stats/time_in_state");
             Scanner scn = null;
             long sum = 0;
             long total_tic = 0;
-            try {
+            try{
                 scn = new Scanner(tis);
-                while (scn.hasNextLine()) {
+                while (scn.hasNextLine()){
                     String line = scn.nextLine();
                     String[] toks = line.split("\\s+");
                     if (toks.length < 2) break;
                     sum += Long.parseLong(toks[0]) * Long.parseLong(toks[1]);
                     total_tic += Long.parseLong(toks[1]);
                 }
-            } catch (FileNotFoundException e) {
+            } catch(FileNotFoundException e){
                 return false;
             } finally {
                 if (scn != null) scn.close();
@@ -263,16 +324,16 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             if (sum == 0 || total_tic == 0) return false;
             current_time_in_state[x].weighted_sum = sum;
             current_time_in_state[x].total_time = total_tic;
-            System.out.println("[DEBUG] total_tic[" + x + "] = " + total_tic);
+            // System.out.println("[DEBUG] total_tic[" + x + "] = " + total_tic);
             return true;
         }
 
-        private boolean _read_cpu(Scanner scn) {
+        private boolean _read_cpu(Scanner scn){
             if (!scn.hasNextLine()) return false;
             String line = scn.nextLine();
             String[] tokens = line.split("\\s+");
             // System.out.println(tokens[0]);
-            if (tokens.length >= 8 && tokens[0].equals("cpu")) {
+            if (tokens.length >= 8 && tokens[0].equals("cpu")){
                 current.user = Long.parseLong(tokens[1]);
                 current.nice = Long.parseLong(tokens[2]);
                 current.system = Long.parseLong(tokens[3]);
@@ -297,14 +358,15 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 // https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/com/android/internal/os/ProcessCpuTracker.java;drc=3ceb4bd3edb81e5bd791a1c9835b9b0cc62c022d;l=903
                 current.u2 = current.user + current.system + current.iowait + current.irq + current.softirq;
             }
+            System.out.println("[DEBUG] cpu = " + line);
             return true;
         }
 
-        private boolean _read_cpux(int x, Scanner scn) {
+        private boolean _read_cpux(int x, Scanner scn){
             if (!scn.hasNextLine()) return false;
             String line = scn.nextLine();
             String[] tokens = line.split("\\s+");
-            if (tokens.length >= 8 && tokens[0].equals("cpu" + x)) {
+            if (tokens.length >= 8 && tokens[0].equals("cpu" + x)){
                 current_per_cpu[x].user = Long.parseLong(tokens[1]);
                 current_per_cpu[x].nice = Long.parseLong(tokens[2]);
                 current_per_cpu[x].system = Long.parseLong(tokens[3]);
@@ -322,36 +384,96 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 current_per_cpu[x].u1 = current_per_cpu[x].total - current_per_cpu[x].idle;
                 current_per_cpu[x].u2 = current_per_cpu[x].user + current_per_cpu[x].system + current_per_cpu[x].iowait + current_per_cpu[x].irq + current_per_cpu[x].softirq;
             }
-            // System.out.println("[DEBUG] total_tic[" + x + "] = " + current_per_cpu[x].total);
+            System.out.println("[DEBUG] total_tic[" + x + "] = " + current_per_cpu[x].total);
+            System.out.println("[DEBUG] cpu[" + x + "] = " + line);
             return true;
         }
 
+        private int _read_cpux(Scanner scn){
+            if (!scn.hasNextLine()) return -1;
+            String line = scn.nextLine();
+            String[] tokens = line.split("\\s+");
+            if (tokens.length < 8){
+                return -1;
+            }
+            if (!tokens[0].startsWith("cpu")){
+                return -1;
+            }
+            int x = Integer.parseInt(tokens[0].substring(3));
+
+            current_per_cpu[x].user = Long.parseLong(tokens[1]);
+            current_per_cpu[x].nice = Long.parseLong(tokens[2]);
+            current_per_cpu[x].system = Long.parseLong(tokens[3]);
+            current_per_cpu[x].idle = Long.parseLong(tokens[4]);
+            current_per_cpu[x].iowait = Long.parseLong(tokens[5]);
+            current_per_cpu[x].irq = Long.parseLong(tokens[6]);
+            current_per_cpu[x].softirq = Long.parseLong(tokens[7]);
+            current_per_cpu[x].total = current_per_cpu[x].user
+                    + current_per_cpu[x].nice
+                    + current_per_cpu[x].system
+                    + current_per_cpu[x].idle
+                    + current_per_cpu[x].iowait
+                    + current_per_cpu[x].irq
+                    + current_per_cpu[x].softirq;
+            current_per_cpu[x].u1 = current_per_cpu[x].total - current_per_cpu[x].idle;
+            current_per_cpu[x].u2 = current_per_cpu[x].user + current_per_cpu[x].system + current_per_cpu[x].iowait + current_per_cpu[x].irq + current_per_cpu[x].softirq;
+
+            // System.out.println("[DEBUG] total_tic[" + x + "] = " + current_per_cpu[x].total);
+            // System.out.println("[DEBUG] cpu[" + x + "] = " + line);
+            return x;
+        }
+
         private boolean read() throws FileNotFoundException {
+
             Scanner scn;
 
             File pid_stat = new File("/proc/" + pid + "/stat");
             scn = new Scanner(pid_stat);
-            try {
+            try{
                 if (!_read_app(scn)) return false;
             } finally {
                 scn.close();
             }
 
+
             File stat = new File("/proc/stat");
+            // String stat = _read_file("/proc/stat");
+            // System.out.println(stat);
             scn = new Scanner(stat);
-            try {
-                if (!_read_cpu(scn)) return false;
-                for (int i = 0; i < cores; ++i) {
-                    if (!_read_cpux(i, scn)) return false;
+            try{
+                if (! _read_cpu(scn)) return false;
+                boolean[] processed = new boolean[cores];
+                while (true){
+                    int x = _read_cpux(scn);
+                    if (x < 0) break;
+                    processed[x] = true;
                 }
+                for (int x = 0; x < cores; ++x){
+                    if (processed[x]) continue;
+                    current_per_cpu[x].user = last_per_cpu[x].user;
+                    current_per_cpu[x].nice = last_per_cpu[x].nice;
+                    current_per_cpu[x].system = last_per_cpu[x].system;
+                    current_per_cpu[x].idle = last_per_cpu[x].idle;
+                    current_per_cpu[x].iowait = last_per_cpu[x].iowait;
+                    current_per_cpu[x].irq = last_per_cpu[x].irq;
+                    current_per_cpu[x].softirq = last_per_cpu[x].softirq;
+                    current_per_cpu[x].total = last_per_cpu[x].total;
+                    current_per_cpu[x].u1 = last_per_cpu[x].u1;
+                    current_per_cpu[x].u2 = last_per_cpu[x].u2;
+                }
+                /*
+                for (int i = 0; i < cores; ++i){
+                    if (! _read_cpux(i, scn)) return false;
+                }
+                */
             } finally {
                 scn.close();
             }
 
             if (allow_normalization) {
-                for (int i = 0; i < cores; ++i) {
-                    if (have_time_in_state) {
-                        if (!_read_time_in_state(i)) {
+                for(int i = 0; i < cores; ++i){
+                    if (have_time_in_state){
+                        if (!_read_time_in_state(i)){
                             have_time_in_state = false;
                             break;
                         }
@@ -373,9 +495,9 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
-        public void update() {
+        public void update(){
             try {
-                if (!read()) {
+                if (!read()){
                     System.out.println("read error");
                     return;
                 }
@@ -385,17 +507,19 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             }
 
             // 1. calculate usage
-            if (current.total - last.total == 0) {
+            if (current.total - last.total == 0){
                 usage = 0.0f;
-            } else {
+            }
+            else {
                 usage = (current.u2 - last.u2) * 100.0f / (current.total - last.total);
             }
 
-            for (int i = 0; i < cores; ++i) {
-                if (current_per_cpu[i].total - last_per_cpu[i].total == 0) {
+            for (int i = 0; i < cores; ++i){
+                if (current_per_cpu[i].total - last_per_cpu[i].total == 0){
                     usage_per_cpu[i] = 0.0f;
                 } else {
                     usage_per_cpu[i] = (current_per_cpu[i].u2 - last_per_cpu[i].u2) * 100.0f / (current_per_cpu[i].total - last_per_cpu[i].total);
+                    // System.out.println("current " + i + " u2=" + (current_per_cpu[i].u2 - last_per_cpu[i].u2) + " t=" + (current_per_cpu[i].total - last_per_cpu[i].total));
                 }
             }
 
@@ -408,7 +532,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 usage_per_cpu[i] = (current_per_cpu[i].u1 - last_per_cpu[i].u1) * 100.0f / (current_per_cpu[i].total - last_per_cpu[i].total);
             }
             */
-            if (current.total - last.total == 0) {
+            if (current.total - last.total == 0){
                 app_usage = 0.0f;
             } else {
                 app_usage = ((current_app.stime + current_app.utime) - (last_app.stime + last_app.utime)) * 100f / (current.total - last.total);
@@ -419,19 +543,24 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 float num = 0;
                 float R0 = 0.0f;
                 long maxf = 0;
-                for (int i = 0; i < cores; ++i) {
+                for (int i = 0; i < cores; ++i){
                     maxf = Math.max(maxf, max_freq[i]);
                 }
-                for (int i = 0; i < cores; ++i) {
+                for (int i = 0; i < cores; ++i){
                     float Ri = 1;
-                    if (have_time_in_state) {
-                        if (current_time_in_state[i].total_time - last_time_in_state[i].total_time == 0) {
+                    if (have_time_in_state){
+                        if (current_time_in_state[i].total_time - last_time_in_state[i].total_time == 0){
                             Ri = 0.0f;
                         } else {
                             Ri = (current_time_in_state[i].weighted_sum - last_time_in_state[i].weighted_sum) * 1f / ((current_time_in_state[i].total_time - last_time_in_state[i].total_time) * max_freq[i]);
                         }
-                    } else if (have_current_freq) {
-                        Ri = current_freq[i] * 1f / max_freq[i];
+                    } else if (have_current_freq){
+
+                        if (max_freq[i] > 0){
+                            Ri = current_freq[i] * 1f / max_freq[i];
+                        } else {
+                            Ri = 0;
+                        }
                         R0 += Ri;
                     }
                     normalized_usage_per_cpu[i] = usage_per_cpu[i] * Ri;
@@ -441,11 +570,11 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 R0 /= cores;
                 System.out.println("[DEBUG] have_time_in_state=" + have_time_in_state + "; have_current_freq=" + have_current_freq + "; R0=" + R0);
                 // System.out.println("[DEBUG] all_cpu_weighted_total=" + den + "; all_cpu_weighted_sum=" + num);
-                if (den > 0) {
+                if (den > 0){
                     normalized_usage = num / den * 100f;
                     normalized_app_usage = app_usage * normalized_usage / usage;
                 }
-                if (R0 > 0.001) {
+                if (R0 > 0.001){
                     normalized_usage = usage * R0;
                     normalized_app_usage = app_usage * normalized_usage / usage;
                 }
@@ -456,7 +585,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 ProcStat t = last;
                 last = current;
                 current = t;
-                for (int i = 0; i < cores; ++i) {
+                for (int i = 0; i < cores; ++i){
                     t = last_per_cpu[i];
                     last_per_cpu[i] = current_per_cpu[i];
                     current_per_cpu[i] = t;
@@ -467,7 +596,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 last_app = current_app;
                 current_app = t;
             }
-            if (allow_normalization) {
+            if (allow_normalization){
                 TimeInState[] t;
                 t = last_time_in_state;
                 last_time_in_state = current_time_in_state;
@@ -475,24 +604,31 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             }
         }
 
-        public void print() {
+        public void print(){
             //System.out.print("idle: " + last.idle + " ");
             //System.out.print("total: " + last.total + " ");
             System.out.print("[RAW] ");
             System.out.print("usage: " + Math.round(usage) + " ");
             System.out.print("app_usage: " + Math.round(app_usage) + " ");
-            for (int i = 0; i < cores; ++i) {
+            for (int i = 0; i < cores; ++i){
                 System.out.print("usage[" + i + "]: " + Math.round(usage_per_cpu[i]) + " ");
             }
-            System.out.println();
-            if (allow_normalization) {
+            System.out.println("");
+            if (allow_normalization){
                 System.out.print("[NORM] ");
                 System.out.print("usage: " + Math.round(normalized_usage) + " ");
                 System.out.print("app_usage: " + Math.round(normalized_app_usage) + " ");
-                for (int i = 0; i < cores; ++i) {
+                for (int i = 0; i < cores; ++i){
                     System.out.print("usage[" + i + "]: " + Math.round(normalized_usage_per_cpu[i]) + " ");
                 }
-                System.out.println();
+                System.out.println("");
+            }
+            if (have_current_freq){
+                System.out.print("[CLOCK] ");
+                for (int i = 0; i < cores; ++i){
+                    System.out.print("freq[" + i + "]: " + Math.round(current_freq[i]) + " ");
+                }
+                System.out.println("");
             }
         }
     }
