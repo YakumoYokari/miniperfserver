@@ -6,9 +6,11 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.GpuUsage;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
+import java.util.Map;
 
 public class GpuUsageMonitor implements IMonitor<GpuUsage> {
 
@@ -39,5 +41,10 @@ public class GpuUsageMonitor implements IMonitor<GpuUsage> {
             data.setGpuUsage(usage);
         }
         return usage;
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 }

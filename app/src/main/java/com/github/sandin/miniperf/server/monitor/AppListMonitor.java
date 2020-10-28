@@ -18,11 +18,13 @@ import android.util.Log;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.AppInfo;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.google.protobuf.ByteString;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 
 public class AppListMonitor implements IMonitor<List<AppInfo>> {
@@ -40,6 +42,11 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
     public List<AppInfo> collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         Log.v(TAG, "collect application list data: timestamp=" + timestamp);
         return getAppInfo();
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 
     public List<AppInfo> getAppInfo() {

@@ -11,6 +11,7 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MemoryDetail;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.VirtualMemory;
 import com.github.sandin.miniperf.server.util.ReflectionUtils;
 
@@ -18,6 +19,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Memory Monitor
@@ -29,6 +32,8 @@ public class MemoryMonitor implements IMonitor<Memory> {
     private static final String TAG = "MemoryMonitor";
 
     private final ActivityManager mActivityManager;
+
+    private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
 
     public MemoryMonitor() {
         Looper.prepare();
@@ -159,4 +164,15 @@ public class MemoryMonitor implements IMonitor<Memory> {
         }
         return memory;
     }
+
+    private boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
+        return mDataTypes.containsKey(dataType) && mDataTypes.get(dataType);
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        mDataTypes.clear();
+        mDataTypes.putAll(dataTypes);
+    }
+
 }

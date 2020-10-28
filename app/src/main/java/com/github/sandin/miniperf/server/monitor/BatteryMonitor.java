@@ -5,16 +5,18 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
-
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
+import java.util.Map;
+
+import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
 
 public class BatteryMonitor implements IMonitor<Power> {
 
@@ -134,5 +136,10 @@ public class BatteryMonitor implements IMonitor<Power> {
         Log.v(TAG, dumpPower(power));
         System.out.println(dumpPower(power));
         return power;
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 }

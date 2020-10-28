@@ -10,11 +10,13 @@ import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.genymobile.scrcpy.wrappers.SurfaceControl;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.Screenshot;
 import com.google.protobuf.ByteString;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
+import java.util.Map;
 
 /**
  * Screenshot Monitor
@@ -31,6 +33,11 @@ public class ScreenshotMonitor implements IMonitor<Screenshot> {
         if (data != null)
             data.setScreenshot(screenshot);
         return screenshot;
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 
     public void takeScreenshot(OutputStream outputStream) throws Exception {

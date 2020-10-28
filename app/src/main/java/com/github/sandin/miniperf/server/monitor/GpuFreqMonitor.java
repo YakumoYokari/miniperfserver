@@ -6,9 +6,11 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.GpuFreq;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
+import java.util.Map;
 
 /*
  *  Gpu Monitor
@@ -51,5 +53,10 @@ public class GpuFreqMonitor implements IMonitor<GpuFreq> {
             Log.i(TAG, "collect gpu info success : " + data.getGpuFreq() + " " + data.getGpuUsage());
         }
         return gpuFreq;
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 }

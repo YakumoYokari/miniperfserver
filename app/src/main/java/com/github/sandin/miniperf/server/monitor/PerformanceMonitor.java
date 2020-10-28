@@ -4,8 +4,6 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
@@ -17,25 +15,49 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import androidx.annotation.Nullable;
+
 /**
  * The Performance Monitor
  */
 public class PerformanceMonitor {
     private static final String TAG = "PerformanceMonitor";
+
+    /**
+     * Interval time in Ms
+     */
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
-    private final List<IMonitor> mMonitors = new ArrayList<>();
-    private List<Callback> mCallback = new ArrayList<>();
-    //记录Monitor是否启动,启动value为true，key为dataType
-    private Map<ProfileReq.DataType, Boolean> mMonitorStatus = new HashMap<>();
-    private FpsMonitor mFpsMonitor;
+
+    /**
+     * Current monitors
+     */
+    private final Map<String, IMonitor<?>> mMonitors = new HashMap<>();
+
+    /**
+     * Data Callback
+     */
+    private final List<Callback> mCallback = new ArrayList<>();
+
+    /**
+     * Data Type List
+     */
+    private final Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
+
+    /**
+     * Loop thread
+     *
+     * {@link PerformanceMonitor#mIntervalMs}
+     */
     @Nullable
-    private Thread mThread;
+    private Thread mLoopThread;
+
     /**
      * Target application
      */
     @Nullable
     private TargetApp mTargetApp;
+
     private boolean mIsRunning = false;
     //TODO use context
     private Context mContext;
@@ -50,26 +72,6 @@ public class PerformanceMonitor {
         mContext = context;
         mIntervalMs = intervalMs;
         mScreenshotIntervalMs = screenshotIntervalMs;
-        //init monitor status
-        for (ProfileReq.DataType dataType : ProfileReq.DataType.values()) {
-            mMonitorStatus.put(dataType, false);
-        }
-    }
-
-    public void registerType(ProfileReq.DataType dataType) {
-        mMonitorStatus.put(dataType, true);
-    }
-
-    public void unregisterType(ProfileReq.DataType dataType) {
-        mMonitorStatus.put(dataType, false);
-    }
-
-    public void setMonitorFiledStatus(ProfileReq.DataType dataType, Boolean state) {
-        mMonitorStatus.put(dataType, state);
-    }
-
-    public boolean getMonitorFiledStatus(ProfileReq.DataType dataType) {
-        return mMonitorStatus.get(dataType);
     }
 
     /**
@@ -110,19 +112,33 @@ public class PerformanceMonitor {
     /**
      * Register a monitor
      *
+     * @param name name
      * @param monitor monitor
      */
-    public void registerMonitor(IMonitor monitor) {
-        mMonitors.add(monitor);
+    private void registerMonitor(String name, IMonitor<?> monitor) {
+        mMonitors.put(name, monitor);
     }
 
     /**
      * Unregister a monitor
      *
-     * @param monitor monitor
+     * @param name monitor name
      */
-    public void unregisterMonitor(IMonitor monitor) {
-        mMonitors.remove(monitor);
+    private void unregisterMonitor(String name) {
+        mMonitors.remove(name);
+    }
+
+    /**
+     * Is monitor registered or not
+     *
+     * @param name monitor name
+     */
+    private boolean isMonitorRegistered(String name) {
+        return mMonitors.containsKey(name);
+    }
+
+    private <T> T getMonitor(String name) {
+        return (T) mMonitors.get(name);
     }
 
     /**
@@ -140,81 +156,156 @@ public class PerformanceMonitor {
         mTargetApp = targetApp;
         mIsRunning = true;
 
+        // init data types
+        mDataTypes.clear();
+        for (ProfileReq.DataType dataType : ProfileReq.DataType.values()) {
+            mDataTypes.put(dataType, false);  // turn off the switch
+        }
+
+        // set up data types
         for (ProfileReq.DataType dataType : dataTypes) {
             Log.i(TAG, "now data type is : " + dataType.name());
-            switch (dataType) {
-                //TODO
-                case CPU_USAGE:
-                    registerMonitor(new CpuMonitor(targetApp.getPid()));
-                    Log.i(TAG, "cpu usage monitor register success");
-                    break;
-                case CORE_FREQUENCY:
-                    break;
-                case GPU_USAGE:
-                    registerMonitor(new GpuUsageMonitor());
-                    Log.i(TAG, "gpu usage monitor register success");
-                    break;
-                case GPU_FREQ:
-                    registerMonitor(new GpuFreqMonitor());
-                    Log.i(TAG, "gpu freq monitor register success");
-                    break;
-                case FPS:
-                    if (mFpsMonitor != null) {
-                        mFpsMonitor.addNeedDataType(dataType);
-                    } else {
-                        mFpsMonitor = new FpsMonitor();
-                        mFpsMonitor.addNeedDataType(dataType);
-                        registerMonitor(mFpsMonitor);
-                        registerType(dataType);
-                        Log.i(TAG, "fps monitor register success");
-                    }
-                    break;
-                case NETWORK_USAGE:
-                    registerMonitor(new NetworkMonitor(mContext));
-                    Log.i(TAG, "network monitor register success");
-                    registerType(dataType);
-                    break;
-                case SCREEN_SHOT:
-                    registerMonitor(new ScreenshotMonitor());
-                    Log.i(TAG, "screenshot  monitor register success");
-                    registerType(dataType);
-                    break;
-                case MEMORY:
-                    registerMonitor(new MemoryMonitor());
-                    registerType(dataType);
-                    Log.i(TAG, "memory monitor register success");
-                    break;
-                case BATTERY:
-                    registerMonitor(new BatteryMonitor(mContext, null));
-                    registerType(dataType);
-                    Log.i(TAG, "battery monitor register success");
-                    break;
-                case CPU_TEMPERATURE:
-                    registerMonitor(new CpuTemperatureMonitor());
-                    registerType(dataType);
-                    Log.i(TAG, "cpu temperature monitor register success");
-                    break;
-                case FRAME_TIME:
-                    if (mMonitorStatus == null) {
-                        mFpsMonitor.addNeedDataType(dataType);
-                    } else {
-                        mFpsMonitor = new FpsMonitor();
-                        mFpsMonitor.addNeedDataType(dataType);
-                        registerMonitor(mFpsMonitor);
-                        registerType(dataType);
-                        Log.i(TAG, "frame times monitor register success");
-                    }
-                    break;
-                case ANDROID_MEMORY_DETAIL:
-                    break;
-                case CORE_USAGE:
-                    break;
-            }
-            Log.i(TAG, "now monitors status : " + mMonitorStatus.toString());
+            mDataTypes.put(dataType, true); // turn on the switch
         }
-        mThread = new Thread(new MonitorWorker());
-        mThread.start();
+        setupMonitorsForDataTypes();
+
+        mLoopThread = new Thread(new MonitorWorker());
+        mLoopThread.start();
         return true;
+    }
+
+    /**
+     * Toggle data types
+     *
+     * @param dataTypes need to toggle data types
+     */
+    private void toggleInterestingDataTypes(List<ProfileReq.DataType> dataTypes) {
+        for (ProfileReq.DataType dataType : dataTypes) {
+            if (mDataTypes.containsKey(dataType)) {
+                mDataTypes.put(dataType, !mDataTypes.get(dataType)); // toggle
+            } else {
+                mDataTypes.put(dataType, true); // turn on
+            }
+        }
+        setupMonitorsForDataTypes();
+    }
+
+    private boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
+        return mDataTypes.get(dataType);
+    }
+
+    private static final String FPS_MONITOR = "fps";
+    private static final String SCREENSHOT_MONITOR = "screenshot";
+    private static final String MEMORY_MONITOR = "memory";
+    private static final String CPU_MONITOR = "cpu";
+    private static final String CPU_TEMPERATURE_MONITOR = "cpu_temperature";
+    private static final String GPU_USAGE_MONITOR = "gpu_usage";
+    private static final String GPU_FREQ_MONITOR = "gpu_freq";
+    private static final String NETWORK_MONITOR = "network";
+    private static final String BATTERY_MONITOR = "battery";
+
+    private Map<ProfileReq.DataType, Boolean> getSubDataTypes(ProfileReq.DataType... dataTypes) {
+        Map<ProfileReq.DataType, Boolean> copy = new HashMap<>();
+        for (ProfileReq.DataType dataType : dataTypes) {
+            copy.put(dataType, mDataTypes.get(dataType));
+        }
+        return copy;
+    }
+
+    private void setupMonitorsForDataTypes() {
+        // screenshot
+        if (isDataTypeEnabled(ProfileReq.DataType.SCREEN_SHOT)) {
+            if (!isMonitorRegistered(SCREENSHOT_MONITOR)) {
+                registerMonitor(SCREENSHOT_MONITOR, new ScreenshotMonitor());
+            } // else has already registered and do nothing
+        } else {
+            unregisterMonitor(SCREENSHOT_MONITOR);
+        }
+
+        // fps
+        if (isDataTypeEnabled(ProfileReq.DataType.FPS) || isDataTypeEnabled(ProfileReq.DataType.FRAME_TIME)) {
+            final FpsMonitor fpsMonitor;
+            if (!isMonitorRegistered(FPS_MONITOR)) {
+                fpsMonitor = new FpsMonitor();
+                registerMonitor(FPS_MONITOR, fpsMonitor);
+            } else { // has already registered and just update fields
+                fpsMonitor = getMonitor(FPS_MONITOR);
+            }
+            fpsMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.FPS, ProfileReq.DataType.FRAME_TIME));
+        } else if (!isDataTypeEnabled(ProfileReq.DataType.FPS) && isDataTypeEnabled(ProfileReq.DataType.FRAME_TIME)) {
+            unregisterMonitor(FPS_MONITOR);
+        }
+
+        // memory
+        if (isDataTypeEnabled(ProfileReq.DataType.MEMORY) || isDataTypeEnabled(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)) {
+            final MemoryMonitor memoryMonitor;
+            if (!isMonitorRegistered(MEMORY_MONITOR)) {
+                memoryMonitor = new MemoryMonitor();
+                registerMonitor(MEMORY_MONITOR, memoryMonitor);
+            } else { // has already registered and just update fields
+                memoryMonitor = getMonitor(MEMORY_MONITOR);
+            }
+            memoryMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.MEMORY, ProfileReq.DataType.ANDROID_MEMORY_DETAIL));
+        } else if (!isDataTypeEnabled(ProfileReq.DataType.MEMORY) && !isDataTypeEnabled(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)) {
+            unregisterMonitor(MEMORY_MONITOR);
+        }
+
+        // cpu
+        if (isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) || isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) || isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
+            final CpuMonitor cpuMonitor;
+            if (!isMonitorRegistered(CPU_MONITOR)) {
+                cpuMonitor = new CpuMonitor(mTargetApp.getPid());
+                registerMonitor(CPU_MONITOR, cpuMonitor);
+            } else { // has already registered and just update fields
+                cpuMonitor = getMonitor(CPU_MONITOR);
+            }
+            cpuMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.CPU_USAGE, ProfileReq.DataType.CORE_USAGE, ProfileReq.DataType.CORE_FREQUENCY));
+        } else if (!isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
+            unregisterMonitor(CPU_MONITOR);
+        }
+
+        if (isDataTypeEnabled(ProfileReq.DataType.CPU_TEMPERATURE)) {
+            if (!isMonitorRegistered(CPU_TEMPERATURE_MONITOR)) {
+                registerMonitor(CPU_TEMPERATURE_MONITOR, new CpuTemperatureMonitor());
+            } // else has already registered and do nothing
+        } else {
+            unregisterMonitor(CPU_TEMPERATURE_MONITOR);
+        }
+
+        // gpu
+        if (isDataTypeEnabled(ProfileReq.DataType.GPU_USAGE)) {
+            if (!isMonitorRegistered(GPU_USAGE_MONITOR)) {
+                registerMonitor("gpu_usage", new GpuUsageMonitor());
+            } // else has already registered and do nothing
+        } else {
+            unregisterMonitor(GPU_USAGE_MONITOR);
+        }
+
+        if (isDataTypeEnabled(ProfileReq.DataType.GPU_FREQ)) {
+            if (!isMonitorRegistered(GPU_FREQ_MONITOR)) {
+                registerMonitor(GPU_FREQ_MONITOR, new GpuFreqMonitor());
+            } // else has already registered and do nothing
+        } else {
+            unregisterMonitor(GPU_FREQ_MONITOR);
+        }
+
+        // network
+        if (isDataTypeEnabled(ProfileReq.DataType.NETWORK_USAGE)) {
+            if (!isMonitorRegistered(NETWORK_MONITOR)) {
+                registerMonitor(NETWORK_MONITOR, new NetworkMonitor(mContext));
+            } // else has already registered and do nothing
+        } else {
+            unregisterMonitor(NETWORK_MONITOR);
+        }
+
+        // battery
+        if (isDataTypeEnabled(ProfileReq.DataType.BATTERY)) {
+            if (!isMonitorRegistered(BATTERY_MONITOR)) {
+                registerMonitor(BATTERY_MONITOR, new BatteryMonitor(mContext, null));
+            } // else has already registered and do nothing
+        } else {
+            unregisterMonitor(BATTERY_MONITOR);
+        }
     }
 
     public void stop() {
@@ -224,16 +315,16 @@ public class PerformanceMonitor {
             // TODO: unregisterMonitors
             mMonitors.clear();
             //清除状态
-            for (ProfileReq.DataType dataType : mMonitorStatus.keySet()) {
-                mMonitorStatus.put(dataType, false);
+            for (ProfileReq.DataType dataType : mDataTypes.keySet()) {
+                mDataTypes.put(dataType, false);
             }
 
-            if (mThread != null) {
+            if (mLoopThread != null) {
                 try {
-                    mThread.join();
+                    mLoopThread.join();
                 } catch (InterruptedException ignore) {
                 }
-                mThread = null;
+                mLoopThread = null;
             }
         }
     }
@@ -242,7 +333,8 @@ public class PerformanceMonitor {
         ProfileNtf.Builder data = ProfileNtf.newBuilder();
         data.setTimestamp(timestamp);
         try {
-            for (IMonitor<?> monitor : mMonitors) {
+            for (Map.Entry<String, IMonitor<?>> entry : mMonitors.entrySet()) {
+                IMonitor<?> monitor = entry.getValue();
                 monitor.collect(mTargetApp, timestamp, data);
                 Log.v(TAG, "collect data: " + data.build().toString());
             }

@@ -14,6 +14,7 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.io.BufferedReader;
@@ -22,6 +23,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Network Monitor
@@ -204,5 +206,10 @@ public class NetworkMonitor implements IMonitor<Network> {
         System.out.println(networkBuilder.getDownload());
         System.out.println(networkBuilder.getUpload());
         return networkBuilder.build();
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 }

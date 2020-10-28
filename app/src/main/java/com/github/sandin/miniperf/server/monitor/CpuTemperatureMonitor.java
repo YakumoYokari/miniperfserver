@@ -5,10 +5,12 @@ import android.util.Log;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
+import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.Temp;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
+import java.util.Map;
 
 public class CpuTemperatureMonitor implements IMonitor<Temp> {
     private static final String TAG = "CpuTemperatureMonitor";
@@ -37,5 +39,10 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
         if (data != null)
             data.setTemp(temp);
         return temp;
+    }
+
+    @Override
+    public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
+        // pass
     }
 }
