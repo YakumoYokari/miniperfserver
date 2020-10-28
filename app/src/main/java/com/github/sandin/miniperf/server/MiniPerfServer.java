@@ -6,6 +6,7 @@ import android.util.Log;
 
 import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
+import com.github.sandin.miniperf.app.BuildConfig;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
