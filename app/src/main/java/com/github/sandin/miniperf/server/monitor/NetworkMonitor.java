@@ -161,14 +161,15 @@ public class NetworkMonitor implements IMonitor<Network> {
             }
         }
         if (lastRxBytes == 0 || lastTxBytes == 0) {
-            lastRxBytes = rxBytes;
-            lastTxBytes = txBytes;
             networkBuilder.setDownload(0);
             networkBuilder.setUpload(0);
         } else {
             networkBuilder.setDownload(rxBytes - lastRxBytes);
             networkBuilder.setUpload(txBytes - lastTxBytes);
         }
+        lastRxBytes = rxBytes;
+        lastTxBytes = txBytes;
+
         return networkBuilder.build();
     }
 
