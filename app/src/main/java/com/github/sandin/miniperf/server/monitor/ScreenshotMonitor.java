@@ -1,6 +1,7 @@
 package com.github.sandin.miniperf.server.monitor;
 
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.util.Log;
 
 import com.genymobile.scrcpy.DisplayInfo;
@@ -32,10 +33,15 @@ ScreenshotMonitor implements IMonitor<Screenshot> {
         Screenshot.Builder builder = Screenshot.newBuilder();
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         takeScreenshot(byteArrayOutputStream);
-        if(rotation==2){
-            rotation = 3;
-        }else if(rotation==3){
-            rotation = 2;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            if (rotation == 2) {
+                rotation = 3;
+            } else if (rotation == 3) {
+                rotation = 2;
+            }
+        }else
+        {
+            rotation = 0;
         }
         Screenshot screenshot = builder.setData(ByteString.copyFrom(byteArrayOutputStream.toByteArray())).setOrientationValue(rotation).build();
         if (data != null)
