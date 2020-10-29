@@ -5,8 +5,6 @@ import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
 import android.content.Context;
 import android.net.ConnectivityManager;
-import android.net.TrafficStats;
-import android.os.Build;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -55,7 +53,6 @@ public class NetworkMonitor implements IMonitor<Network> {
     21 tx_other_packets ： 发送的其他类型包数*/
 
     private static final String TAG = "NetworkMonitor";
-    private NetworkStatsManager mNetworkStatsManager;
     private Context mContext;
     private int lastRxBytes = 0;
     private int lastTxBytes = 0;
@@ -64,9 +61,6 @@ public class NetworkMonitor implements IMonitor<Network> {
 
     public NetworkMonitor(Context context) {
         mContext = context;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mNetworkStatsManager = (NetworkStatsManager) context.getSystemService(Context.NETWORK_STATS_SERVICE);
-        }
     }
 
     /**
@@ -84,37 +78,50 @@ public class NetworkMonitor implements IMonitor<Network> {
         return sb.toString();
     }
 
-    private Network getTrafficsFromTrafficStats(int uid) {
-        Network.Builder network = Network.newBuilder();
-        long download = TrafficStats.getUidRxBytes(uid);
-        long upload = TrafficStats.getUidTxBytes(uid);
-        if (download == -1 || upload == -1) {
-            flag = false;
-        }
-        network.setUpload((int) upload);
-        network.setDownload((int) download);
-        return network.build();
-    }
+//    private Network getTrafficsFromTrafficStats(int uid) {
+//        Network.Builder network = Network.newBuilder();
+//        long download = TrafficStats.getUidRxBytes(uid);
+//        long upload = TrafficStats.getUidTxBytes(uid);
+//        if (download == -1 || upload == -1) {
+//            flag = false;
+//        }
+//        network.setUpload((int) upload);
+//        network.setDownload((int) download);
+//        return network.build();
+//    }
 
     @SuppressLint("NewApi")
     public Network getTrafficsFromNetworkStatsManager(int uid) throws RemoteException {
+        NetworkStatsManager mNetworkStatsManager = (NetworkStatsManager) mContext.getSystemService(Context.NETWORK_STATS_SERVICE);
         Network.Builder networkBuilder = Network.newBuilder();
         String subId = AndroidProcessUtils.getSubscriberId(mContext);
-        long summaryRx = 0;
-        long summaryTx = 0;
+        long totalRx = 0;
+        long totalTx = 0;
         NetworkStats.Bucket summaryBucket = new NetworkStats.Bucket();
         int networkType = getNetworkType();
         System.out.println("network type : " + networkType);
         NetworkStats networkStats = mNetworkStatsManager
-                .queryDetailsForUid(networkType, subId, System.currentTimeMillis() - 10 * 60 * 1000, System.currentTimeMillis(), uid);
-        while (networkStats.hasNextBucket()) {
+                .querySummary(networkType, subId, System.currentTimeMillis(), System.currentTimeMillis());
+//        while (networkStats.hasNextBucket()) {
+//            if (summaryBucket.getUid() == uid) {
+//                networkStats.getNextBucket(summaryBucket);
+//                summaryRx += summaryBucket.getRxBytes();
+//                summaryTx += summaryBucket.getTxBytes();
+//            }
+//        }
+        do {
             networkStats.getNextBucket(summaryBucket);
-            summaryRx += summaryBucket.getRxBytes();
-            summaryTx += summaryBucket.getTxBytes();
-        }
-        System.out.println("summaryRx : " + summaryRx + " summaryTx : " + summaryTx);
-        networkBuilder.setDownload((int) summaryRx);
-        networkBuilder.setUpload((int) summaryTx);
+            int summaryUid = summaryBucket.getUid();
+            if (uid == summaryUid) {
+                long summaryRx = summaryBucket.getRxBytes();
+                long summaryTx = summaryBucket.getTxBytes();
+                totalRx += summaryRx;
+                totalTx += summaryTx;
+            }
+        } while (networkStats.hasNextBucket());
+        System.out.println("summaryRx : " + totalRx + " summaryTx : " + totalTx);
+        networkBuilder.setDownload((int) totalRx);
+        networkBuilder.setUpload((int) totalTx);
         return networkBuilder.build();
     }
 
@@ -188,19 +195,21 @@ public class NetworkMonitor implements IMonitor<Network> {
 //            trafficInfo = getTrafficsFromTrafficStats(uid);
 //        }
 //        trafficInfo = getTrafficsFromTrafficStats(uid);
-        if (trafficInfo.getDownload() >= 0 && trafficInfo.getUpload() >= 0) {
-            if (lastRxBytes == 0 || lastTxBytes == 0) {
-                networkBuilder.setUpload(0);
-                networkBuilder.setDownload(0);
-            } else {
-                networkBuilder.setUpload(trafficInfo.getDownload() - lastRxBytes);
-                networkBuilder.setDownload(trafficInfo.getUpload() - lastTxBytes);
-            }
-            lastRxBytes = trafficInfo.getDownload();
-            lastTxBytes = trafficInfo.getUpload();
-        }
+//        if (trafficInfo.getDownload() >= 0 && trafficInfo.getUpload() >= 0) {
+//            if (lastRxBytes == 0 || lastTxBytes == 0) {
+//                networkBuilder.setUpload(0);
+//                networkBuilder.setDownload(0);
+//            } else {
+//                networkBuilder.setUpload(trafficInfo.getDownload() - lastRxBytes);
+//                networkBuilder.setDownload(trafficInfo.getUpload() - lastTxBytes);
+//            }
+//            lastRxBytes = trafficInfo.getDownload();
+//            lastTxBytes = trafficInfo.getUpload();
+//        }
 //        System.out.println("download : "+ networkBuilder.getDownload());
 //        System.out.println("upload : "+networkBuilder.getUpload());
+        System.out.println(trafficInfo.getDownload());
+        System.out.println(trafficInfo.getUpload());
         Log.i(TAG, "download : " + networkBuilder.getDownload());
         Log.i(TAG, "upload : " + networkBuilder.getUpload());
         System.out.println(networkBuilder.getDownload());

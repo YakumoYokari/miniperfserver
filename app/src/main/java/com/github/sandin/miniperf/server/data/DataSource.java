@@ -30,11 +30,14 @@ public final class DataSource {
     };
 
     public static final String[] GPU_USAGE_SYSTEM_FILE_PATHS = {
-            "/sys/class/kgsl/kgsl-3d0/gpubusy",//高通
+            "/sys/class/kgsl/kgsl-3d0/gpubusy",//高通常见
+            "/sys/kernel/gpu/gpu_busy"
+
     };
 
     public static final String[] GPU_CLOCK_SYSTEM_FILE_PATHS = {
             "/sys/class/kgsl/kgsl-3d0/gpuclk",//高通
+            "/sys/kernel/gpu/gpu_clock"
     };
 
     public static final String NETWORK_SYSTEM_FILE_PATHS = "/proc/net/xt_qtaguid/stats";

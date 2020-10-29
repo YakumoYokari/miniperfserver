@@ -9,17 +9,18 @@ import com.genymobile.scrcpy.wrappers.ServiceManager;
 import java.io.BufferedReader;
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Scanner;
 
 public class ReadSystemInfoUtils {
 
     private static final String TAG = "MiniPerfMonitor";
 
     /**
+     * TODO scanner影响性能
      * read system file info
      *
      * @param systemFilePaths
@@ -28,26 +29,29 @@ public class ReadSystemInfoUtils {
     public static List<String> readInfoFromSystemFile(String[] systemFilePaths) {
         List<String> content = new LinkedList<>();
         for (String path : systemFilePaths) {
+//            System.out.println("now path is " + path);
             Log.i(TAG, "now read file path is " + path);
             File systemFile = new File(path);
-            Scanner scanner = null;
             Log.i(TAG, "is file exist : " + systemFile.exists());
             if (systemFile.exists()) {
+                System.out.println("start read system file : " + path);
                 Log.i(TAG, "start read system file : " + path);
+                BufferedReader reader = null;
                 try {
-                    scanner = new Scanner(systemFile);
+                    reader = new BufferedReader(new FileReader(systemFile));
                     String line;
-                    while ((line = scanner.nextLine()) != null) {
+                    while ((line = reader.readLine()) != null) {
+                        System.out.println("available path : " + path);
+                        System.out.println(line);
                         content.add(line);
+                        System.out.println("now content : " + content);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
-                    close(scanner);
+                    close(reader);
                 }
             }
-            if (content.size() > 0)
-                break;
         }
         return content;
     }

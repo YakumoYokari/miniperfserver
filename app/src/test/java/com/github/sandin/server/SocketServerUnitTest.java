@@ -1,8 +1,6 @@
 package com.github.sandin.server;
 
-import com.github.sandin.miniperf.server.MiniPerfServer;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
-import com.github.sandin.miniperf.server.monitor.CpuMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
 import com.github.sandin.miniperf.server.proto.CoreUsage;
@@ -13,7 +11,6 @@ import com.github.sandin.miniperf.server.proto.FrameTime;
 import com.github.sandin.miniperf.server.proto.GetAppInfoReq;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
-import com.github.sandin.miniperf.server.proto.GetCpuMaxFreqReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperf.server.proto.GpuFreq;
@@ -27,8 +24,6 @@ import com.github.sandin.miniperf.server.proto.ProfileApp;
 import com.github.sandin.miniperf.server.proto.ProfileAppInfo;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
-import com.github.sandin.miniperf.server.proto.ProfileRsp;
-import com.github.sandin.miniperf.server.proto.Screenshot;
 import com.github.sandin.miniperf.server.proto.StopProfileReq;
 import com.github.sandin.miniperf.server.proto.Temp;
 
@@ -39,7 +34,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -136,8 +130,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "com.xiaomi.shop";
-        int pid = 5658;
+        String packageName = "com.testplus.ubox.ue4.demo";
+        int pid = 16004;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))
@@ -195,7 +189,7 @@ public class SocketServerUnitTest {
             //System.out.println("123:"+profileNtf.getTemp().getTemp()+"   "+(profileNtf.getTemp().getTemp()>10&&ishas[0]==0)+"   ***"+ishas[8]);
 
             ishas[0] = ((profileNtf.getCpuUsage().getAppUsage()!=0||profileNtf.getCpuUsage().getTotalUsage()!=0)&&ishas[0]==0?1:ishas[0]);
-            ishas[1] = (profileNtf.getCpuFreq().getCpuFreq(0)!=0&&ishas[1]==0?1:ishas[1]);
+            //ishas[1] = (profileNtf.getCpuFreq().getCpuFreq(0)!=0&&ishas[1]==0?1:ishas[1]);
             ishas[2] = (profileNtf.getGpuUsage().getGpuUsage()!=0&&ishas[2]==0?1:ishas[2]);
             ishas[3] = (profileNtf.getGpuFreq().getGpuFreq()>0&&ishas[3]==0?1:ishas[3]);
             ishas[4] = ((profileNtf.getFps().getFps()!=0||profileNtf.getFps().getBigJank()!=0||profileNtf.getFps().getJank()!=0)&&ishas[4]==0?1:ishas[4]);

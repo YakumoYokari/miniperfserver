@@ -17,16 +17,40 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
 
     private int getCpuTemperature() {
         List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CPU_TEMPERATURE_SYSTEM_FILE_PATHS);
+        System.out.println("content : " + content.toString());
         int temperature = 0;
+        int[] counts = new int[100];
+//        int count = 0;
         if (content.size() > 0) {
-            temperature = Integer.parseInt(content.get(0));
-            //TODO 某些机型的配置文件读出来只需要除10 已修复 待回测
-            if (temperature >= 100 && temperature < 1000) {
-                temperature = Math.abs(Math.round((float) temperature / 10));
-            } else if (temperature >= 1000) {
-                temperature = Math.abs(Math.round((float) temperature / 1000));
+            for (String line : content) {
+                if (!line.equals("")) {
+                    int temp = Integer.parseInt(line);
+                    //TODO 某些机型的配置文件读出来只需要除10 已修复 待回测
+                    temp = Math.abs(temp);
+                    System.out.println(temp);
+                    if (temp >= 100 && temp < 1000) {
+                        temp = (Math.round((float) temp / 10));
+                    } else if (temp >= 1000) {
+                        temp = (Math.round((float) temp / 1000));
+                    }
+                    System.out.println(temp);
+                    counts[temp]++;
+//                    temperature += temp;
+//                    count++;
+                }
             }
         }
+//        if (count != 0 && temperature != 0)
+//            temperature = Math.round((float) temperature / count);
+        int maxCount = 0;
+        int maxIndex = 0;
+        for (int i = 0; i < 100; i++) {
+            if (counts[i] > maxCount) {
+                maxCount = counts[i];
+                maxIndex = i;
+            }
+        }
+        temperature = maxIndex;
         return temperature;
     }
 

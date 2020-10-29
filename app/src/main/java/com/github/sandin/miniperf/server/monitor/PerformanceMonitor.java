@@ -4,18 +4,17 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
-import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import androidx.annotation.Nullable;
 
 /**
  * The Performance Monitor
@@ -372,9 +371,9 @@ public class PerformanceMonitor {
 //                ProfileNtf collectData = collectData(startTime - mFirstTime);
                 ProfileNtf collectData = collectData(System.currentTimeMillis());
                 notifyCallbacks(collectData); // send data
-                if (AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPid())) {
-                    break;
-                }
+//                if (AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPid())) {
+//                    break;
+//                }
                 mTickCount++;
                 long costTime = SystemClock.uptimeMillis() - startTime;
                 long sleepTime = mIntervalMs - costTime - 2;  // | costTime | sleepTime |
@@ -387,7 +386,7 @@ public class PerformanceMonitor {
                 }
             }
             Log.i(TAG, "application is close !");
-            stop();
+//            stop();
             notifySendCloseNtf(AppClosedNTF.newBuilder().build());
         }
     }

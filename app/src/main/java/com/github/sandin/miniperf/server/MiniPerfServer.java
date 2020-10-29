@@ -4,12 +4,17 @@ import android.content.Context;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+
 import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.app.BuildConfig;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
+import com.github.sandin.miniperf.server.monitor.CpuTemperatureMonitor;
+import com.github.sandin.miniperf.server.monitor.GpuFreqMonitor;
+import com.github.sandin.miniperf.server.monitor.GpuUsageMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
@@ -20,12 +25,16 @@ import com.github.sandin.miniperf.server.proto.GetAppInfoRsp;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
+import com.github.sandin.miniperf.server.proto.GpuFreq;
+import com.github.sandin.miniperf.server.proto.GpuUsage;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.ProfileRsp;
 import com.github.sandin.miniperf.server.proto.StopProfileRsp;
+import com.github.sandin.miniperf.server.proto.Temp;
 import com.github.sandin.miniperf.server.proto.ToggleInterestingFiledNTF;
 import com.github.sandin.miniperf.server.server.SocketServer;
 import com.github.sandin.miniperf.server.session.Session;
@@ -33,15 +42,14 @@ import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
-
-import androidx.annotation.Nullable;
 
 
 /**
  * MiniPerfServer
  */
-public class MiniPerfServer implements SocketServer.Callback  {
+public class MiniPerfServer implements SocketServer.Callback {
     private static final String TAG = "MiniPerfServer";
 
     /**
@@ -121,8 +129,8 @@ public class MiniPerfServer implements SocketServer.Callback  {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
         String packageName = "com.xiaomi.shop";
-        int pid = 5658;
-        int uid = AndroidProcessUtils.getUid(mContext,packageName);
+        int pid = AndroidProcessUtils.getPid(mContext, packageName);
+        int uid = AndroidProcessUtils.getUid(mContext, packageName);
         TargetApp targetApp = new TargetApp(packageName, uid);
         String command = arguments.getAsString("command", null);
         if (command != null) {
@@ -133,7 +141,13 @@ public class MiniPerfServer implements SocketServer.Callback  {
                     break;
                 case "network":
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
-                    networkMonitor.collect(targetApp,System.currentTimeMillis(),null);
+//                    networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+//                    long last = TrafficStats.getMobileRxBytes();
+//                    System.out.println(last);
+//                    System.out.println(TrafficStats.getTotalRxBytes());
+                    Network network = networkMonitor.getTrafficsFromNetworkStatsManager(uid);
+                    System.out.println(network.getUpload());
+                    System.out.println(network.getDownload());
                     break;
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);
@@ -146,6 +160,21 @@ public class MiniPerfServer implements SocketServer.Callback  {
                         System.out.println("system app: " + app.getIsSystemApp());
                         System.out.println("");
                     }
+                    break;
+                case "cputemp":
+                    CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
+                    Temp temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
+                    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    System.out.println("time is : " + df.format(System.currentTimeMillis()));
+                    System.out.println("Temp : " + temp);
+                    break;
+                case "gpu":
+                    GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
+                    GpuUsageMonitor gpuUsageMonitor = new GpuUsageMonitor();
+                    GpuFreq gpuFreq = gpuFreqMonitor.collect(null, System.currentTimeMillis(), null);
+                    GpuUsage usage = gpuUsageMonitor.collect(null, System.currentTimeMillis(), null);
+                    System.out.println("gpu freq : " + gpuFreq.getGpuFreq());
+                    System.out.println("gpu usage : " + usage.getGpuUsage());
                     break;
                 default:
                     System.out.println("[Error] unknown command: " + command);
