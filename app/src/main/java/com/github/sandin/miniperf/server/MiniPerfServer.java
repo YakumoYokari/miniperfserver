@@ -1,6 +1,7 @@
 package com.github.sandin.miniperf.server;
 
 import android.content.Context;
+import android.os.Build;
 import android.os.Looper;
 import android.util.Log;
 
@@ -42,8 +43,9 @@ import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 /**
@@ -128,7 +130,7 @@ public class MiniPerfServer implements SocketServer.Callback {
     }
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
-        String packageName = "com.xiaomi.shop";
+        String packageName = "com.tencent.tmgp.jx3m";
         int pid = AndroidProcessUtils.getPid(mContext, packageName);
         int uid = AndroidProcessUtils.getUid(mContext, packageName);
         TargetApp targetApp = new TargetApp(packageName, uid);
@@ -141,13 +143,13 @@ public class MiniPerfServer implements SocketServer.Callback {
                     break;
                 case "network":
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
-//                    networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
-//                    long last = TrafficStats.getMobileRxBytes();
-//                    System.out.println(last);
-//                    System.out.println(TrafficStats.getTotalRxBytes());
-                    Network network = networkMonitor.getTrafficsFromNetworkStatsManager(uid);
-                    System.out.println(network.getUpload());
-                    System.out.println(network.getDownload());
+                    Network last = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                    System.out.println(last.getUpload());
+                    System.out.println(last.getDownload());
+                    Thread.sleep(3 * 1000);
+                    Network now = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                    System.out.println(now.getUpload());
+                    System.out.println(now.getDownload());
                     break;
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);
@@ -162,11 +164,21 @@ public class MiniPerfServer implements SocketServer.Callback {
                     }
                     break;
                 case "cputemp":
-                    CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
-                    Temp temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
-                    SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    System.out.println("time is : " + df.format(System.currentTimeMillis()));
-                    System.out.println("Temp : " + temp);
+                    TimerTask task = new TimerTask() {
+                        @Override
+                        public void run() {
+                            CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
+                            Temp temp = null;
+                            try {
+                                temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            System.out.println("Temp : " + temp);
+                        }
+                    };
+                    Timer timer = new Timer();
+                    timer.scheduleAtFixedRate(task, 0, 1500);
                     break;
                 case "gpu":
                     GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
@@ -176,6 +188,14 @@ public class MiniPerfServer implements SocketServer.Callback {
                     System.out.println("gpu freq : " + gpuFreq.getGpuFreq());
                     System.out.println("gpu usage : " + usage.getGpuUsage());
                     break;
+
+                case "battery":
+                    BatteryMonitor batteryMonitor = new BatteryMonitor(mContext, null);
+                    Power power = batteryMonitor.collect(null, System.currentTimeMillis(), null);
+                    System.out.println(power.getCurrent());
+                    System.out.println(power.getVoltage());
+                    System.out.println(Build.BRAND);
+
                 default:
                     System.out.println("[Error] unknown command: " + command);
                     break;
