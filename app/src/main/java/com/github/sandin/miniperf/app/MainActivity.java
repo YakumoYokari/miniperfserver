@@ -1,9 +1,13 @@
 package com.github.sandin.miniperf.app;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
-import android.widget.Button;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,20 +16,30 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Scanner;
 
-public class MainActivity extends Activity {
+import androidx.annotation.NonNull;
+
+public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private volatile boolean running = false;
 
     private Thread mThread = null;
+
+    private SurfaceView mSurfaceView;
+    private MediaPlayer mMediaPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mSurfaceView = findViewById(R.id.surfaceView);
+        mSurfaceView.getHolder().addCallback(this);
+
         findViewById(R.id.btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                startActivity(new Intent(MainActivity.this, TestActivity.class));
+                /*
                 if (mThread == null) {
                     ((Button)findViewById(R.id.btn)).setText("Stop");
                     running = true;
@@ -58,6 +72,7 @@ public class MainActivity extends Activity {
                     ((Button)findViewById(R.id.btn)).setText("Start");
                     mThread = null;
                 }
+                 */
             }
         });
     }
@@ -100,5 +115,38 @@ public class MainActivity extends Activity {
             }
         }
         return true;
+    }
+
+    @Override
+    public void surfaceCreated(@NonNull SurfaceHolder holder) {
+        try {
+            mMediaPlayer = new MediaPlayer();
+            mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            mMediaPlayer.setLooping(true);
+
+            mMediaPlayer.setDisplay(mSurfaceView.getHolder());
+            mMediaPlayer.setDataSource("http://10.11.130.47/video/test.mp4");
+            mMediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    mMediaPlayer.start();
+                }
+            });
+            //FIXME: mMediaPlayer.prepareAsync();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+    }
+
+    @Override
+    public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+        if (mMediaPlayer != null) {
+            mMediaPlayer.release();
+        }
+
     }
 }

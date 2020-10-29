@@ -16,8 +16,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Set;
+import java.util.TreeSet;
 
 import androidx.annotation.NonNull;
 
@@ -34,40 +34,16 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
 
     private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
 
-    //TODO 不是所有都以SurfaceView开头 bug
-    private Pattern mLayerNamePattern = Pattern.compile("^SurfaceView - ([^/]+)\\/[^#]*#\\d$");
-
-    private boolean getLayerName(@NonNull String packageName) {
-        List<String> result = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--list"});
-        for (String line : result) {
-            Matcher match = mLayerNamePattern.matcher(line);
-            if (match.find() && packageName.equals(match.group(1))) {
-                mLayerName = line.trim();
-                return true;
-            }
-        }
-        if (mLayerName == null){
-            for (String line : result){
-                if (line.startsWith(packageName+'/')){
-                    mLayerName = line;
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
     private List<String> getFramesDataFromDumpsys(@NonNull String layerName) {
         List<String> timestamps = new LinkedList<>();
-        if (layerName != null) {
-            //单位为ns
-            timestamps = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--latency", mLayerName});
-            if (timestamps.size() > 0) {
-                mRefreshPeriod = Long.parseLong(timestamps.get(0));
-                Log.i(TAG, "refresh period is " + mRefreshPeriod);
-            }
-            Log.i(TAG, "collect frame data from dumpsys success : " + timestamps.toString());
+        //单位为ns
+        timestamps = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--latency", layerName});
+        if (timestamps.size() > 0) {
+            mRefreshPeriod = Long.parseLong(timestamps.get(0));
+            Log.i(TAG, "refresh period is " + mRefreshPeriod);
         }
+        Log.i(TAG, "collect frame data from dumpsys success : " + timestamps.toString());
         return timestamps;
     }
 
@@ -89,13 +65,84 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
     }
 
     private List<Long> getNewFrameTimes(@NonNull String packageName) {
-        boolean hasLayerName = getLayerName(packageName);
-        if (!hasLayerName) {
-            Log.e(TAG, "application hasn't start or package name is error!, packageName=" + packageName);
-            return null;
+        List<Long> frameTimes = null;
+
+        // first try the last layer which has some data
+        if (mLayerName != null) {
+            frameTimes = getNewFrameTimesForLayer(mLayerName);
         }
-        List<String> framesData = getFramesDataFromDumpsys(mLayerName);
-        Log.i(TAG, "LayerName :  " + mLayerName);
+
+        // the first time or no refresh data(fps=0) then try to find the top layer
+        if (frameTimes == null || frameTimes.size() == 0) {
+            List<String> layerCandidates = getLayerCandidates(packageName);
+            if (layerCandidates.size() > 0) {
+                for (String layerName : layerCandidates) {
+                    frameTimes = getNewFrameTimesForLayer(layerName);
+                    if (frameTimes != null && frameTimes.size() > 0) {
+                        mLayerName = layerName;
+                        break;
+                    }
+                }
+            } else {
+                Log.e(TAG, "Can not found any layer for package " + packageName);
+            }
+        }
+
+        if (frameTimes != null && frameTimes.size() > 0) {
+            mLastTime = frameTimes.get(frameTimes.size() - 1);
+        }
+
+        return frameTimes;
+    }
+
+    private static class LayerCandidate implements Comparable<LayerCandidate> {
+
+        public String layerName;
+        public int rank;
+
+        public LayerCandidate(String layerName, int rank) {
+            this.layerName = layerName;
+            this.rank = rank;
+        }
+
+        @Override
+        public int compareTo(LayerCandidate o) {
+            return o.rank - this.rank;
+        }
+    }
+
+    private List<String> getLayerCandidates(@NonNull String packageName) {
+        Set<LayerCandidate> candidates = new TreeSet<LayerCandidate>();
+
+        // "SurfaceView - <packageName>/<activityName>#0"
+        // "SurfaceView - <packageName>/<activityName>"
+        // "<packageName>/<activityName>"
+        String layerNamePrefix1 = "SurfaceView - " + packageName + "/";
+        String layerNamePrefix2 = packageName + "/";
+
+        List<String> lines = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{ "--list" });
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith(layerNamePrefix1)) {
+                candidates.add(new LayerCandidate(line, 100));
+            } else if (line.startsWith(layerNamePrefix2)) {
+                candidates.add(new LayerCandidate(line, 80));
+            } else if (line.contains(packageName)) {
+                candidates.add(new LayerCandidate(line, 60));
+            }
+        }
+
+        List<String> layers = new ArrayList<>();
+        for (LayerCandidate candidate : candidates) {
+            layers.add(candidate.layerName);
+        }
+        return layers;
+    }
+
+
+    private List<Long> getNewFrameTimesForLayer(@NonNull String layerName) {
+        List<String> framesData = getFramesDataFromDumpsys(layerName);
+        Log.i(TAG, "Layer Name :  " + layerName);
         Log.i(TAG, "frame times size :  " + framesData.size());
         Log.i(TAG, "now last time is : " + mLastTime);
         if (framesData.size() == 1) {
@@ -115,20 +162,20 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         if (!overlap)
             Log.e(TAG, "No overlap with previous poll, we missed some frames!");
         Log.i(TAG, "Elapsed times size : " + mElapsedTimes.size());
+        List<Long> newFrameTimes = new ArrayList<>();
         if (mLastTime == 0) {
-            mLastTime = mElapsedTimes.get(mElapsedTimes.size() - 1);
-            return null;
+            if (mElapsedTimes.size() > 0) {
+                newFrameTimes.add(mElapsedTimes.get(mElapsedTimes.size() - 1));
+            }
         } else {
-            List<Long> newFrameTimes = new ArrayList<>();
             newFrameTimes.add(mLastTime);
             for (long time : mElapsedTimes) {
                 if (time > mLastTime) {
                     newFrameTimes.add(time);
                 }
             }
-            mLastTime = mElapsedTimes.get(mElapsedTimes.size() - 1);
-            return newFrameTimes;
         }
+        return newFrameTimes;
     }
 
     private JankInfo checkJank(List<Long> frameTimes) {
