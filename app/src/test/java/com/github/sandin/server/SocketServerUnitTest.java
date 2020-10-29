@@ -130,8 +130,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "com.testplus.ubox.ue4.demo";
-        int pid = 16004;
+        String packageName = "com.android.calculator2";
+        int pid = 8661;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))
