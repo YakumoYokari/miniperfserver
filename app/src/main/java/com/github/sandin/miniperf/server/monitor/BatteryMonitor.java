@@ -5,6 +5,9 @@ import android.os.BatteryManager;
 import android.os.Build;
 import android.util.Log;
 
+import androidx.annotation.RequiresApi;
+import androidx.annotation.VisibleForTesting;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Power;
@@ -14,9 +17,6 @@ import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
 import java.util.Map;
-
-import androidx.annotation.RequiresApi;
-import androidx.annotation.VisibleForTesting;
 
 public class BatteryMonitor implements IMonitor<Power> {
 
@@ -58,7 +58,7 @@ public class BatteryMonitor implements IMonitor<Power> {
         return sb.toString();
     }
 
-    //读取配置文件出来的单位为μ
+    //读取配置文件出来的单位为μ 目前只发现华为/荣耀手机读出来就是ma
     private static int micro2Milli(int micro) {
         return Math.round((float) micro / 1000);
     }
@@ -103,7 +103,16 @@ public class BatteryMonitor implements IMonitor<Power> {
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @VisibleForTesting
     private Power getPowerInfoFromDex() {
-        int current = micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
+        int originCurrent = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
+        String brandName = Build.BRAND;
+        System.out.println("origin current info : " + originCurrent);
+        Log.i(TAG, "origin current info : " + originCurrent);
+        int current = 0;
+        if (brandName.equals("HUAWEI") || brandName.equals("HONER")) {
+            current = Math.abs(originCurrent);
+        } else {
+            current = micro2Milli(Math.abs(originCurrent));
+        }
         Log.i(TAG, "collect current : " + current);
         int voltage = getVoltageFromDump();
         Log.i(TAG, "collect voltage : " + voltage);

@@ -5,6 +5,8 @@ import android.app.usage.NetworkStats;
 import android.app.usage.NetworkStatsManager;
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.net.TrafficStats;
+import android.os.Build;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -14,12 +16,8 @@ import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
+import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -78,18 +76,6 @@ public class NetworkMonitor implements IMonitor<Network> {
         return sb.toString();
     }
 
-//    private Network getTrafficsFromTrafficStats(int uid) {
-//        Network.Builder network = Network.newBuilder();
-//        long download = TrafficStats.getUidRxBytes(uid);
-//        long upload = TrafficStats.getUidTxBytes(uid);
-//        if (download == -1 || upload == -1) {
-//            flag = false;
-//        }
-//        network.setUpload((int) upload);
-//        network.setDownload((int) download);
-//        return network.build();
-//    }
-
     @SuppressLint("NewApi")
     public Network getTrafficsFromNetworkStatsManager(int uid) throws RemoteException {
         NetworkStatsManager mNetworkStatsManager = (NetworkStatsManager) mContext.getSystemService(Context.NETWORK_STATS_SERVICE);
@@ -101,14 +87,7 @@ public class NetworkMonitor implements IMonitor<Network> {
         int networkType = getNetworkType();
         System.out.println("network type : " + networkType);
         NetworkStats networkStats = mNetworkStatsManager
-                .querySummary(networkType, subId, System.currentTimeMillis(), System.currentTimeMillis());
-//        while (networkStats.hasNextBucket()) {
-//            if (summaryBucket.getUid() == uid) {
-//                networkStats.getNextBucket(summaryBucket);
-//                summaryRx += summaryBucket.getRxBytes();
-//                summaryTx += summaryBucket.getTxBytes();
-//            }
-//        }
+                .querySummary(networkType, subId, System.currentTimeMillis() - 60 * 60 * 1000, System.currentTimeMillis());
         do {
             networkStats.getNextBucket(summaryBucket);
             int summaryUid = summaryBucket.getUid();
@@ -131,30 +110,21 @@ public class NetworkMonitor implements IMonitor<Network> {
         return cm.getActiveNetworkInfo().getType();
     }
 
+
+    private Network getTrafficsFromTrafficStats(int uid) {
+        Network.Builder network = Network.newBuilder();
+        long download = TrafficStats.getUidRxBytes(uid);
+        long upload = TrafficStats.getUidTxBytes(uid);
+        //-1为不支持 只在android10遇见过
+        network.setUpload((int) upload);
+        network.setDownload((int) download);
+        return network.build();
+    }
+
     private Network getTrafficsFromSystemFile(int uid) {
-//        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
-        File networkFile = new File(DataSource.NETWORK_SYSTEM_FILE_PATHS);
+        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         Network.Builder networkBuilder = Network.newBuilder();
         int rxBytes = 0, txBytes = 0;
-        List<String> content = new LinkedList<>();
-        BufferedReader reader = null;
-        try {
-            reader = new BufferedReader(new FileReader(networkFile));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println("line: " + line);
-                content.add(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException ignore) {
-                }
-            }
-        }
         Log.i(TAG, "collect traffics info size : " + content.size());
         if (content.size() > 1) {
             Log.i(TAG, content.toString());
@@ -163,7 +133,9 @@ public class NetworkMonitor implements IMonitor<Network> {
                 if (line.equals(content.get(0)))
                     continue;
                 String[] parts = line.split("\\s+");
-                if (Integer.parseInt(parts[3]) == uid && parts[1] != "lo") {
+                int lineUid = Integer.parseInt(parts[3]);
+                System.out.println("now line uid : ");
+                if ((lineUid == uid) && (parts[1] != "lo")) {
                     rxBytes += Integer.parseInt(parts[5]);
                     txBytes += Integer.parseInt(parts[7]);
                 }
@@ -188,32 +160,24 @@ public class NetworkMonitor implements IMonitor<Network> {
         Log.v(TAG, "collect traffics data: timestamp=" + timestamp);
         int uid = AndroidProcessUtils.getUid(mContext, targetApp.getPackageName());
         Network.Builder networkBuilder = Network.newBuilder();
-        Network trafficInfo = getTrafficsFromSystemFile(uid);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//        trafficInfo = getTrafficsFromNetworkStatsManager(uid);
-//        } else {
-//            trafficInfo = getTrafficsFromTrafficStats(uid);
-//        }
-//        trafficInfo = getTrafficsFromTrafficStats(uid);
-//        if (trafficInfo.getDownload() >= 0 && trafficInfo.getUpload() >= 0) {
-//            if (lastRxBytes == 0 || lastTxBytes == 0) {
-//                networkBuilder.setUpload(0);
-//                networkBuilder.setDownload(0);
-//            } else {
-//                networkBuilder.setUpload(trafficInfo.getDownload() - lastRxBytes);
-//                networkBuilder.setDownload(trafficInfo.getUpload() - lastTxBytes);
-//            }
-//            lastRxBytes = trafficInfo.getDownload();
-//            lastTxBytes = trafficInfo.getUpload();
-//        }
-//        System.out.println("download : "+ networkBuilder.getDownload());
-//        System.out.println("upload : "+networkBuilder.getUpload());
-        System.out.println(trafficInfo.getDownload());
-        System.out.println(trafficInfo.getUpload());
-        Log.i(TAG, "download : " + networkBuilder.getDownload());
-        Log.i(TAG, "upload : " + networkBuilder.getUpload());
-        System.out.println(networkBuilder.getDownload());
-        System.out.println(networkBuilder.getUpload());
+        Network trafficInfo;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            trafficInfo = getTrafficsFromNetworkStatsManager(uid);
+        } else {
+//            trafficInfo = getTrafficsFromSystemFile(uid);
+            trafficInfo = getTrafficsFromTrafficStats(uid);
+        }
+        if (trafficInfo.getDownload() >= 0 && trafficInfo.getUpload() >= 0) {
+            if (lastRxBytes == 0 || lastTxBytes == 0) {
+                networkBuilder.setUpload(0);
+                networkBuilder.setDownload(0);
+            } else {
+                networkBuilder.setUpload(trafficInfo.getDownload() - lastRxBytes);
+                networkBuilder.setDownload(trafficInfo.getUpload() - lastTxBytes);
+            }
+            lastRxBytes = trafficInfo.getDownload();
+            lastTxBytes = trafficInfo.getUpload();
+        }
         return networkBuilder.build();
     }
 
