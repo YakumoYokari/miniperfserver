@@ -9,11 +9,14 @@ import com.github.sandin.miniperf.server.proto.CpuFreq;
 import com.github.sandin.miniperf.server.proto.CpuUsage;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.io.FileReader;
@@ -189,18 +192,16 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             allow_normalization = true;
             int offline = 0;
             for (int i = 0; i < cores; ++i) {
-                File f = new File("/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq");
-                Scanner scn = null;
-                try {
-                    scn = new Scanner(f);
-                    max_freq[i] = scn.nextLong();
-                } catch (FileNotFoundException e) {
-                    // allow_normalization = false;
+                String Path="/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
+                List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(Path);
+                //Log.i(TAG, "CPUStat123: "+"   "+i+"    "+str.toString());
+                if(str.size()>0){
+                    long tmp = Long.valueOf(str.get(0));
+                    max_freq[i] = tmp;
+                    //Log.i(TAG, "CPUStat123433:"+ max_freq[i]);
+                }else{
                     offline++;
-                } finally {
-                    if (scn != null) {
-                        scn.close();
-                    }
+                    //Log.i(TAG, "CPUStat1234:"+offline);
                 }
             }
             if (offline == cores)
@@ -243,9 +244,10 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return null;
         }
 
-        private boolean _read_app(Scanner scn){
-            if (!scn.hasNextLine()) return false;
-            String line = scn.nextLine();
+        private boolean _read_app(List<String> str){
+            if (str.size()==0) return false;
+            String line = str.get(0);
+            Log.i(TAG, "_read_app: str: "+line);
             // System.out.println("[DEBUG]" + line);
             int pos = line.lastIndexOf(')');
             if (pos + 2 >= line.length()) return false;
@@ -257,18 +259,25 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
+
         private boolean _read_max_freq(int x){
             String filename = "/sys/devices/system/cpu/cpu" + x + "/cpufreq/cpuinfo_max_freq";
             File f = new File(filename);
-            Scanner scn = null;
+            BufferedReader reader = null;
             try{
-                scn = new Scanner(f);
-                max_freq[x] = scn.nextLong(10);
-            } catch(FileNotFoundException e){
+                reader =new BufferedReader(new FileReader(f));
+                int tmp =Integer.parseInt(reader.readLine());
+                max_freq[x] = tmp;
+            }catch (FileNotFoundException e){
                 return true;
+            }
+            catch (IOException e){
             } finally {
-                if (scn != null){
-                    scn.close();
+                if(reader != null){
+                    try{
+                        reader.close();
+                    }catch (IOException ignore){
+                    }
                 }
             }
             // System.out.println("[DEBUG] max_freq[" + x +"] = " + current_freq[x] + "/" + max_freq[x] + " from " + filename);
@@ -278,21 +287,28 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         private boolean _read_current_freq(int x){
             String filename = "/sys/devices/system/cpu/cpu" + x + "/cpufreq/scaling_cur_freq";
             File f = new File(filename);
-            Scanner scn = null;
+            BufferedReader reader = null;
             current_freq[x] = 0;
             try{
-                scn = new Scanner(f);
+                reader =new BufferedReader(new FileReader(f));
                 Thread.sleep(20);
-                current_freq[x] = scn.nextLong(10);
+                int tmp =Integer.parseInt(reader.readLine());
+                current_freq[x] = tmp;
             } catch(InterruptedException e){
                 return false;
             } catch(FileNotFoundException e){
                 // e.printStackTrace();
                 current_freq[x] = 0;
                 return true;
+            }catch (IOException e)
+            {
             } finally {
-                if (scn != null){
-                    scn.close();
+                if(reader != null){
+                    try{
+                        reader.close();
+                    }catch (IOException ignore){
+
+                    }
                 }
             }
             if (current_freq[x] > 0 && max_freq[x] == 0){
@@ -303,23 +319,19 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         }
 
         private boolean _read_time_in_state(int x){
-            File tis = new File("/sys/devices/system/cpu/cpu"+ x + "/cpufreq/stats/time_in_state");
-            Scanner scn = null;
+            String tis = "/sys/devices/system/cpu/cpu"+ x + "/cpufreq/stats/time_in_state";
+            List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(tis);
             long sum = 0;
             long total_tic = 0;
-            try{
-                scn = new Scanner(tis);
-                while (scn.hasNextLine()){
-                    String line = scn.nextLine();
+            if(str.size()>0){
+                for(String line:str){
                     String[] toks = line.split("\\s+");
                     if (toks.length < 2) break;
                     sum += Long.parseLong(toks[0]) * Long.parseLong(toks[1]);
                     total_tic += Long.parseLong(toks[1]);
                 }
-            } catch(FileNotFoundException e){
+            } else{
                 return false;
-            } finally {
-                if (scn != null) scn.close();
             }
             if (sum == 0 || total_tic == 0) return false;
             current_time_in_state[x].weighted_sum = sum;
@@ -328,9 +340,10 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
-        private boolean _read_cpu(Scanner scn){
-            if (!scn.hasNextLine()) return false;
-            String line = scn.nextLine();
+        private boolean _read_cpu(List<String> str){
+            if (str.size()==0) return false;
+            String line = str.get(0);
+            Log.i(TAG, "_read_cpu: str:"+line);
             String[] tokens = line.split("\\s+");
             // System.out.println(tokens[0]);
             if (tokens.length >= 8 && tokens[0].equals("cpu")){
@@ -362,36 +375,10 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
-        private boolean _read_cpux(int x, Scanner scn){
-            if (!scn.hasNextLine()) return false;
-            String line = scn.nextLine();
-            String[] tokens = line.split("\\s+");
-            if (tokens.length >= 8 && tokens[0].equals("cpu" + x)){
-                current_per_cpu[x].user = Long.parseLong(tokens[1]);
-                current_per_cpu[x].nice = Long.parseLong(tokens[2]);
-                current_per_cpu[x].system = Long.parseLong(tokens[3]);
-                current_per_cpu[x].idle = Long.parseLong(tokens[4]);
-                current_per_cpu[x].iowait = Long.parseLong(tokens[5]);
-                current_per_cpu[x].irq = Long.parseLong(tokens[6]);
-                current_per_cpu[x].softirq = Long.parseLong(tokens[7]);
-                current_per_cpu[x].total = current_per_cpu[x].user
-                        + current_per_cpu[x].nice
-                        + current_per_cpu[x].system
-                        + current_per_cpu[x].idle
-                        + current_per_cpu[x].iowait
-                        + current_per_cpu[x].irq
-                        + current_per_cpu[x].softirq;
-                current_per_cpu[x].u1 = current_per_cpu[x].total - current_per_cpu[x].idle;
-                current_per_cpu[x].u2 = current_per_cpu[x].user + current_per_cpu[x].system + current_per_cpu[x].iowait + current_per_cpu[x].irq + current_per_cpu[x].softirq;
-            }
-            System.out.println("[DEBUG] total_tic[" + x + "] = " + current_per_cpu[x].total);
-            System.out.println("[DEBUG] cpu[" + x + "] = " + line);
-            return true;
-        }
 
-        private int _read_cpux(Scanner scn){
-            if (!scn.hasNextLine()) return -1;
-            String line = scn.nextLine();
+        private int _read_cpux(String str){
+            String line = str;
+            Log.i(TAG, "_read_cpux: str"+line);
             String[] tokens = line.split("\\s+");
             if (tokens.length < 8){
                 return -1;
@@ -424,28 +411,19 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         }
 
         private boolean read() throws FileNotFoundException {
-
-            Scanner scn;
-
-            File pid_stat = new File("/proc/" + pid + "/stat");
-            scn = new Scanner(pid_stat);
-            try{
-                if (!_read_app(scn)) return false;
-            } finally {
-                scn.close();
-            }
-
-
-            File stat = new File("/proc/stat");
+            String pid_stat = "/proc/" + pid + "/stat";
+            List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(pid_stat);
+            if (!_read_app(str)) return false;
+            String stat = "/proc/stat";
             // String stat = _read_file("/proc/stat");
             // System.out.println(stat);
-            scn = new Scanner(stat);
+            List<String> str1 = ReadSystemInfoUtils.readInfoFromSystemFile(stat);
             try{
-                if (! _read_cpu(scn)) return false;
+                if (! _read_cpu(str1)) return false;
                 boolean[] processed = new boolean[cores];
-                while (true){
-                    int x = _read_cpux(scn);
-                    if (x < 0) break;
+                for (int i =1;i<str1.size();i++){
+                    int x = _read_cpux(str1.get(i));
+                    if(x<0) break;
                     processed[x] = true;
                 }
                 for (int x = 0; x < cores; ++x){
@@ -467,7 +445,6 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 }
                 */
             } finally {
-                scn.close();
             }
 
             if (allow_normalization) {

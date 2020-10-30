@@ -34,17 +34,15 @@ public class ReadSystemInfoUtils {
             File systemFile = new File(path);
             Log.i(TAG, "is file exist : " + systemFile.exists());
             if (systemFile.exists()) {
-                System.out.println("start read system file : " + path);
+//                System.out.println("start read system file : " + path);
                 Log.i(TAG, "start read system file : " + path);
                 BufferedReader reader = null;
                 try {
                     reader = new BufferedReader(new FileReader(systemFile));
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        System.out.println("available path : " + path);
-                        System.out.println(line);
+                        System.out.println(path + " " + line);
                         content.add(line);
-                        System.out.println("now content : " + content);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
