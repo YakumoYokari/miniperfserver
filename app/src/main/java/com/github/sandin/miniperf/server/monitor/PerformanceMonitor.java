@@ -4,8 +4,6 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
-import androidx.annotation.Nullable;
-
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
@@ -15,6 +13,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 /**
  * The Performance Monitor
@@ -115,6 +116,7 @@ public class PerformanceMonitor {
      * @param monitor monitor
      */
     private void registerMonitor(String name, IMonitor<?> monitor) {
+        Log.i(TAG, "registerMonitor name=" + name);
         mMonitors.put(name, monitor);
     }
 
@@ -124,6 +126,7 @@ public class PerformanceMonitor {
      * @param name monitor name
      */
     private void unregisterMonitor(String name) {
+        Log.i(TAG, "unregisterMonitor name=" + name);
         mMonitors.remove(name);
     }
 
@@ -136,7 +139,8 @@ public class PerformanceMonitor {
         return mMonitors.containsKey(name);
     }
 
-    private <T> T getMonitor(String name) {
+    @VisibleForTesting
+    public <T> T getMonitor(String name) {
         return (T) mMonitors.get(name);
     }
 
@@ -185,11 +189,12 @@ public class PerformanceMonitor {
             } else {
                 mDataTypes.put(dataType, true); // turn on
             }
+            Log.i(TAG, "toggle dataType " + dataType + " -> " + mDataTypes.get(dataType));
         }
         setupMonitorsForDataTypes();
     }
 
-    private boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
+    public boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
         return mDataTypes.get(dataType);
     }
 
@@ -218,7 +223,9 @@ public class PerformanceMonitor {
                 registerMonitor(SCREENSHOT_MONITOR, new ScreenshotMonitor());
             } // else has already registered and do nothing
         } else {
-            unregisterMonitor(SCREENSHOT_MONITOR);
+            if (isMonitorRegistered(SCREENSHOT_MONITOR)) {
+                unregisterMonitor(SCREENSHOT_MONITOR);
+            }
         }
 
         // fps
@@ -231,8 +238,10 @@ public class PerformanceMonitor {
                 fpsMonitor = getMonitor(FPS_MONITOR);
             }
             fpsMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.FPS, ProfileReq.DataType.FRAME_TIME));
-        } else if (!isDataTypeEnabled(ProfileReq.DataType.FPS) && isDataTypeEnabled(ProfileReq.DataType.FRAME_TIME)) {
-            unregisterMonitor(FPS_MONITOR);
+        } else if (!isDataTypeEnabled(ProfileReq.DataType.FPS) && !isDataTypeEnabled(ProfileReq.DataType.FRAME_TIME)) {
+            if (isMonitorRegistered(FPS_MONITOR)) {
+                unregisterMonitor(FPS_MONITOR);
+            }
         }
 
         // memory
@@ -246,7 +255,9 @@ public class PerformanceMonitor {
             }
             memoryMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.MEMORY, ProfileReq.DataType.ANDROID_MEMORY_DETAIL));
         } else if (!isDataTypeEnabled(ProfileReq.DataType.MEMORY) && !isDataTypeEnabled(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)) {
-            unregisterMonitor(MEMORY_MONITOR);
+            if (isMonitorRegistered(MEMORY_MONITOR)) {
+                unregisterMonitor(MEMORY_MONITOR);
+            }
         }
 
         // cpu
@@ -260,7 +271,9 @@ public class PerformanceMonitor {
             }
             cpuMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.CPU_USAGE, ProfileReq.DataType.CORE_USAGE, ProfileReq.DataType.CORE_FREQUENCY));
         } else if (!isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
-            unregisterMonitor(CPU_MONITOR);
+            if (isMonitorRegistered(CPU_MONITOR)) {
+                unregisterMonitor(CPU_MONITOR);
+            }
         }
 
         if (isDataTypeEnabled(ProfileReq.DataType.CPU_TEMPERATURE)) {
@@ -268,7 +281,9 @@ public class PerformanceMonitor {
                 registerMonitor(CPU_TEMPERATURE_MONITOR, new CpuTemperatureMonitor());
             } // else has already registered and do nothing
         } else {
-            unregisterMonitor(CPU_TEMPERATURE_MONITOR);
+            if (isMonitorRegistered(CPU_TEMPERATURE_MONITOR)) {
+                unregisterMonitor(CPU_TEMPERATURE_MONITOR);
+            }
         }
 
         // gpu
@@ -277,7 +292,9 @@ public class PerformanceMonitor {
                 registerMonitor("gpu_usage", new GpuUsageMonitor());
             } // else has already registered and do nothing
         } else {
-            unregisterMonitor(GPU_USAGE_MONITOR);
+            if (isMonitorRegistered(GPU_USAGE_MONITOR)) {
+                unregisterMonitor(GPU_USAGE_MONITOR);
+            }
         }
 
         if (isDataTypeEnabled(ProfileReq.DataType.GPU_FREQ)) {
@@ -285,7 +302,9 @@ public class PerformanceMonitor {
                 registerMonitor(GPU_FREQ_MONITOR, new GpuFreqMonitor());
             } // else has already registered and do nothing
         } else {
-            unregisterMonitor(GPU_FREQ_MONITOR);
+            if (isMonitorRegistered(GPU_FREQ_MONITOR)) {
+                unregisterMonitor(GPU_FREQ_MONITOR);
+            }
         }
 
         // network
@@ -294,7 +313,9 @@ public class PerformanceMonitor {
                 registerMonitor(NETWORK_MONITOR, new NetworkMonitor(mContext));
             } // else has already registered and do nothing
         } else {
-            unregisterMonitor(NETWORK_MONITOR);
+            if (isMonitorRegistered(NETWORK_MONITOR)) {
+                unregisterMonitor(NETWORK_MONITOR);
+            }
         }
 
         // battery
@@ -303,7 +324,9 @@ public class PerformanceMonitor {
                 registerMonitor(BATTERY_MONITOR, new BatteryMonitor(mContext, null));
             } // else has already registered and do nothing
         } else {
-            unregisterMonitor(BATTERY_MONITOR);
+            if (isMonitorRegistered(BATTERY_MONITOR)) {
+                unregisterMonitor(BATTERY_MONITOR);
+            }
         }
     }
 
