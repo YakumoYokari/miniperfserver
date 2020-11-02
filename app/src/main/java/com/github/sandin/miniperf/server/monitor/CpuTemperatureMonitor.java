@@ -9,6 +9,7 @@ import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.Temp;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -16,10 +17,15 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
     private static final String TAG = "CpuTemperatureMonitor";
 
     private int getCpuTemperature() {
-        List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CPU_TEMPERATURE_SYSTEM_FILE_PATHS);
+        List<String> content = new LinkedList<>();
+        content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CPU_TEMPERATURE_SYSTEM_FILE_PATHS);
         System.out.println("content : " + content.toString());
+        //TODO 临时处理方法 荣耀30lite
+        if (content.size() == 0 || content == null) {
+            content = ReadSystemInfoUtils.readInfoFromSystemFile(new String[]{"/sys/devices/virtual/thermal/thermal_zone1/temp", "/sys/class/thermal/thermal_zone1/temp"});
+        }
         int temperature = 0;
-        int[] counts = new int[100];
+//        int[] counts = new int[100];
         int count = 0;
         if (content.size() > 0) {
             for (String line : content) {
