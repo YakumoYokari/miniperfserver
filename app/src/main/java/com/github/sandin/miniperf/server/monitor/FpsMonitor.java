@@ -1,5 +1,6 @@
 package com.github.sandin.miniperf.server.monitor;
 
+import android.os.Build;
 import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.FpsInfo;
@@ -73,12 +74,12 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         }
 
         // the first time or no refresh data(fps=0) then try to find the top layer
-        if (frameTimes == null || frameTimes.size() == 0) {
+        if (frameTimes == null || frameTimes.size() <= 1 /* 里面总是有一个lastTime，所以不是 == 0，而是 <= 1 */) {
             List<String> layerCandidates = getLayerCandidates(packageName);
             if (layerCandidates.size() > 0) {
                 for (String layerName : layerCandidates) {
                     frameTimes = getNewFrameTimesForLayer(layerName);
-                    if (frameTimes != null && frameTimes.size() > 0) {
+                    if (frameTimes != null && frameTimes.size() > 1) {
                         mLayerName = layerName;
                         break;
                     }
@@ -114,22 +115,29 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
     private List<String> getLayerCandidates(@NonNull String packageName) {
         Set<LayerCandidate> candidates = new TreeSet<LayerCandidate>();
 
-        // "SurfaceView - <packageName>/<activityName>#0"
-        // "SurfaceView - <packageName>/<activityName>"
-        // "<packageName>/<activityName>"
+
+
         String layerNamePrefix1 = "SurfaceView - " + packageName + "/";
         String layerNamePrefix2 = packageName + "/";
 
-        List<String> lines = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{ "--list" });
-        for (String line : lines) {
-            line = line.trim();
-            if (line.startsWith(layerNamePrefix1)) {
-                candidates.add(new LayerCandidate(line, 100));
-            } else if (line.startsWith(layerNamePrefix2)) {
-                candidates.add(new LayerCandidate(line, 80));
-            } else if (line.contains(packageName)) {
-                candidates.add(new LayerCandidate(line, 60));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // "SurfaceView - <packageName>/<activityName>#0"
+            // "SurfaceView - <packageName>/<activityName>"
+            // "<packageName>/<activityName>"
+            List<String> lines = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{ "--list" });
+            for (String line : lines) {
+                line = line.trim();
+                if (line.startsWith(layerNamePrefix1)) {
+                    candidates.add(new LayerCandidate(line, 100));
+                } else if (line.startsWith(layerNamePrefix2)) {
+                    candidates.add(new LayerCandidate(line, 80));
+                } else if (line.contains(packageName)) {
+                    candidates.add(new LayerCandidate(line, 60));
+                }
             }
+        } else {
+            // "SurfaceView"
+            candidates.add(new LayerCandidate("SurfaceView", 100));
         }
 
         List<String> layers = new ArrayList<>();
