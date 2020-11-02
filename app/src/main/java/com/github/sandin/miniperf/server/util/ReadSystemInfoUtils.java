@@ -41,7 +41,6 @@ public class ReadSystemInfoUtils {
                     reader = new BufferedReader(new FileReader(systemFile));
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        System.out.println(path + " " + line);
                         content.add(line);
                     }
                 } catch (Exception e) {

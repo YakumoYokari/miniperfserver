@@ -130,7 +130,7 @@ public class MiniPerfServer implements SocketServer.Callback {
     }
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
-        String packageName = "com.tencent.tmgp.jx3m";
+        String packageName = "com.xiaomi.shop";
         int pid = AndroidProcessUtils.getPid(mContext, packageName);
         int uid = AndroidProcessUtils.getUid(mContext, packageName);
         TargetApp targetApp = new TargetApp(packageName, uid);
@@ -142,11 +142,12 @@ public class MiniPerfServer implements SocketServer.Callback {
                     screenshotMonitor.takeScreenshot(System.out);
                     break;
                 case "network":
+                    //Tx : send ,Rx : recv
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
                     Network last = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
                     System.out.println(last.getUpload());
                     System.out.println(last.getDownload());
-                    Thread.sleep(3 * 1000);
+                    Thread.sleep(1 * 1000);
                     Network now = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
                     System.out.println(now.getUpload());
                     System.out.println(now.getDownload());
@@ -164,10 +165,10 @@ public class MiniPerfServer implements SocketServer.Callback {
                     }
                     break;
                 case "cputemp":
+                    final CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
                     TimerTask task = new TimerTask() {
                         @Override
                         public void run() {
-                            CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
                             Temp temp = null;
                             try {
                                 temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);

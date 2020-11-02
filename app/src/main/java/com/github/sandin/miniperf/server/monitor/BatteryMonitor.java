@@ -106,9 +106,11 @@ public class BatteryMonitor implements IMonitor<Power> {
         int originCurrent = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
         String brandName = Build.BRAND;
         System.out.println("origin current info : " + originCurrent);
+        System.out.println("brand is " + brandName);
+        Log.i(TAG, "brand is " + brandName);
         Log.i(TAG, "origin current info : " + originCurrent);
         int current = 0;
-        if (brandName.equals("HUAWEI") || brandName.equals("HONER")) {
+        if (brandName.equals("HUAWEI") || brandName.equals("HONOR")) {
             current = Math.abs(originCurrent);
         } else {
             current = micro2Milli(Math.abs(originCurrent));

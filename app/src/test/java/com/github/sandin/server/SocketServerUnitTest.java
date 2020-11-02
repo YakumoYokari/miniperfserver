@@ -130,9 +130,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "com.tencent.tmgp.jx3m";
-        //packageName = "com.xsj.jxsj3.xsj";
-        int pid = 0;
+        String packageName = "com.xiaomi.shop";
+        int pid = 3104;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
                 .setAppInfo(ProfileAppInfo.newBuilder().setPackageName(packageName).setProcessName(processName).setUserId(pid))
@@ -140,22 +139,18 @@ public class SocketServerUnitTest {
         System.out.println("profile app : " + app.toString());
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder()
                 .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)
+                        .addDataTypes(ProfileReq.DataType.MEMORY)
+                        .addDataTypes(ProfileReq.DataType.CPU_USAGE)
+                        .addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
+                        .addDataTypes(ProfileReq.DataType.GPU_USAGE)
+                        .addDataTypes(ProfileReq.DataType.GPU_FREQ)
                         .addDataTypes(ProfileReq.DataType.FPS)
+                        .addDataTypes(ProfileReq.DataType.NETWORK_USAGE)
+                        .addDataTypes(ProfileReq.DataType.BATTERY)
+                        .addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
                         .addDataTypes(ProfileReq.DataType.FRAME_TIME)
-
-                        //.addDataTypes(ProfileReq.DataType.MEMORY)
-                        //.addDataTypes(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)
-
-                        //.addDataTypes(ProfileReq.DataType.CPU_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.CORE_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
-
-                        //.addDataTypes(ProfileReq.DataType.GPU_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.GPU_FREQ)
-
-                        //.addDataTypes(ProfileReq.DataType.NETWORK_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.BATTERY)
-                        //.addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
+                        .addDataTypes(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)
+                        .addDataTypes(ProfileReq.DataType.CORE_USAGE)
                 )
                 .build();
         System.out.println("send request: " + request);
