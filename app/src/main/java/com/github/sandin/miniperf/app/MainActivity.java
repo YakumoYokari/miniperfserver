@@ -18,6 +18,8 @@ import java.util.Scanner;
 
 import androidx.annotation.NonNull;
 
+import com.github.sandin.miniperf.server.MiniPerfServer;
+
 public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
     private volatile boolean running = false;
@@ -34,6 +36,14 @@ public class MainActivity extends Activity implements SurfaceHolder.Callback {
 
         mSurfaceView = findViewById(R.id.surfaceView);
         mSurfaceView.getHolder().addCallback(this);
+
+        new Thread() {
+            @Override
+            public void run() {
+                String[] args = new String[]{"--app"};
+                MiniPerfServer.main(args);
+            }
+        }.start();
 
         findViewById(R.id.btn).setOnClickListener(new View.OnClickListener() {
             @Override

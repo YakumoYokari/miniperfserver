@@ -236,7 +236,11 @@ public class MiniPerfServer implements SocketServer.Callback {
         switch (request.getProtocolCase()) {
             // TODO: other requests
             case PROFILEREQ:
+                Log.i(TAG, "handleRequestMessage: PROFILEREQ");
                 return handleProfileReq(clientConnection, request.getProfileReq());
+            case PROFILENTFACK:
+                Log.i(TAG, "handleRequestMessage: PROFILENTFACK");
+                return null; // TODO:
             case GETMEMORYUSAGEREQ:
                 return handleGetMemoryUsageReq(request.getGetMemoryUsageReq());
             case GETBATTERYINFOREQ:
@@ -248,16 +252,21 @@ public class MiniPerfServer implements SocketServer.Callback {
             case STOPPROFILEREQ:
                 return handleStopProfileReq();
             case TOGGLEINTERESTINGFILEDNTF:
-                handleToggleInterestingFiledNtf(request.getToggleInterestingFiledNTF());
+                Log.i(TAG, "handleRequestMessage: TOGGLEINTERESTINGFILEDNTF");
+                return handleToggleInterestingFiledNtf(request.getToggleInterestingFiledNTF());
+            default:
+                Log.i(TAG, "handleRequestMessage: Unknown protocol " + request.getProtocolCase());
+                break;
         }
         return null;
     }
 
-    private void handleToggleInterestingFiledNtf(ToggleInterestingFiledNTF request) {
+    private byte[] handleToggleInterestingFiledNtf(ToggleInterestingFiledNTF request) {
         int dataTypeNum = request.getDataType();
         ProfileReq.DataType dataType = ProfileReq.DataType.forNumber(dataTypeNum);
         PerformanceMonitor monitor = session.getMonitor();
         monitor.toggleInterestingDataTypes(dataType);
+        return null;
     }
 
     private byte[] handleStopProfileReq() {

@@ -68,23 +68,22 @@ public final class Session implements PerformanceMonitor.Callback {
      */
     @Override
     public void onUpdate(ProfileNtf data) {
-        try {
+        if (mConnection.isConnected()) {
             MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProfileNtf(data).build();
             mConnection.sendMessage(response.toByteArray());
-        } catch (IOException e) {
-            e.printStackTrace(); // TODO: socket closed
+        } else {
+            // TODO: disconnect
         }
     }
 
     @Override
     public void sendAppClosedNTF(AppClosedNTF appClosedNTF) {
-        try {
+        if (mConnection.isConnected()) {
             MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setAppClosedNTF(appClosedNTF).build();
             mConnection.sendMessage(response.toByteArray());
-        } catch (IOException e){
-            e.printStackTrace();
+        } else {
+            // TODO: disconnect
         }
-
     }
 
     public int getSessionId() {

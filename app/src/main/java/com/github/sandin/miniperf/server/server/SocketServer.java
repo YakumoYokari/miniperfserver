@@ -35,7 +35,7 @@ public class SocketServer {
     /**
      * Socket timeout(connect, write, read)
      */
-    private static final int SOCKET_CONNECTION_TIMEOUT_MS = 1000;
+    private static final int SOCKET_CONNECTION_TIMEOUT_MS = 3 * 1000;
 
     /**
      * client max idle time(no more communication)
@@ -370,7 +370,8 @@ public class SocketServer {
         @Override
         public void run() {
             Log.i(TAG, "server create a new thread for connection, client address=" + getClientName());
-            while (true) {
+            int errorCount = 0;
+            while (errorCount < 10) {
                 try {
                     byte[] request = readMessage(); // block op
                     byte[] response = handleRequestMessage(this, request);
@@ -378,16 +379,20 @@ public class SocketServer {
                         sendMessage(response);
                     }
                     mIdleTime = 0; // reset timer
+                    errorCount = 0;
                 } catch (SocketTimeoutException e) {
                     e.printStackTrace();
                     mIdleTime += SOCKET_CONNECTION_TIMEOUT_MS;
                 } catch (EOFException e) {
+                    Log.e(TAG, "close connection: " + e.getMessage());
                     close(); // close connection
                     break;
                 } catch (IOException e) {
+                    Log.e(TAG, "try again: " + e.getMessage());
                     e.printStackTrace();
+                    errorCount++;
                     //close(); // close connection
-                    break;
+                    //break;
                 } catch (Throwable e) {
                     e.printStackTrace();
                 }
@@ -426,7 +431,9 @@ public class SocketServer {
          * @return message
          */
         private byte[] readMessage() throws IOException {
+            Log.v(TAG, "try to read message");
             int length = mSocketInputStream.readInt();
+            Log.v(TAG, "try to read message length: " + length);
             byte[] buffer = new byte[length];
             mSocketInputStream.readFully(buffer);
             Log.v(TAG, "recv raw message, length=" + length);
@@ -438,11 +445,16 @@ public class SocketServer {
          *
          * @param message message
          */
-        public void sendMessage(@NonNull byte[] message) throws IOException {
-            Log.v(TAG, "send raw message, length=" + message.length);
-            mSocketOutputStream.writeInt(message.length);
-            mSocketOutputStream.write(message);
-            mSocketOutputStream.flush();
+        public void sendMessage(@NonNull byte[] message)  {
+            try {
+                Log.v(TAG, "send raw message, length=" + message.length);
+                mSocketOutputStream.writeInt(message.length);
+                mSocketOutputStream.write(message);
+                mSocketOutputStream.flush();
+            } catch (IOException e) {
+                Log.e(TAG, "close connection: " + e.getMessage());
+                close();
+            }
         }
 
         /**

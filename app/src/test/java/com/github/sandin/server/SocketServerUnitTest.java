@@ -22,10 +22,12 @@ import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProfileApp;
 import com.github.sandin.miniperf.server.proto.ProfileAppInfo;
+import com.github.sandin.miniperf.server.proto.ProfileNTFACK;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.StopProfileReq;
 import com.github.sandin.miniperf.server.proto.Temp;
+import com.github.sandin.miniperf.server.proto.ToggleInterestingFiledNTF;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -130,7 +132,8 @@ public class SocketServerUnitTest {
 
     @Test
     public void profileReqTest() throws IOException {
-        String packageName = "com.xiaomi.shop";
+        String packageName = "com.tencent.tmgp.jx3m";
+        packageName = "com.xsj.jxsj3.xsj";
         int pid = 3104;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
@@ -139,18 +142,18 @@ public class SocketServerUnitTest {
         System.out.println("profile app : " + app.toString());
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder()
                 .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)
-                        .addDataTypes(ProfileReq.DataType.MEMORY)
-                        .addDataTypes(ProfileReq.DataType.CPU_USAGE)
-                        .addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
-                        .addDataTypes(ProfileReq.DataType.GPU_USAGE)
-                        .addDataTypes(ProfileReq.DataType.GPU_FREQ)
+                        //.addDataTypes(ProfileReq.DataType.MEMORY)
+                        //.addDataTypes(ProfileReq.DataType.CPU_USAGE)
+                        //.addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
+                        //.addDataTypes(ProfileReq.DataType.GPU_USAGE)
+                        //.addDataTypes(ProfileReq.DataType.GPU_FREQ)
                         .addDataTypes(ProfileReq.DataType.FPS)
-                        .addDataTypes(ProfileReq.DataType.NETWORK_USAGE)
-                        .addDataTypes(ProfileReq.DataType.BATTERY)
-                        .addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
+                        //.addDataTypes(ProfileReq.DataType.NETWORK_USAGE)
+                        //.addDataTypes(ProfileReq.DataType.BATTERY)
+                        //.addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
                         .addDataTypes(ProfileReq.DataType.FRAME_TIME)
-                        .addDataTypes(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)
-                        .addDataTypes(ProfileReq.DataType.CORE_USAGE)
+                        //.addDataTypes(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)
+                        //.addDataTypes(ProfileReq.DataType.CORE_USAGE)
                 )
                 .build();
         System.out.println("send request: " + request);
@@ -168,7 +171,25 @@ public class SocketServerUnitTest {
         int[] ishas = {0,0,0,0,0,0,0,0,0,0,0,0,};
 
         for (int i =0;i<50;i++) {
+
+            // read profile message
             byte[] bytes = mClient.readMessage();
+
+            // send toggle dataType message
+            System.out.println("send toggle dataType request");
+
+            if (i % 10 == 0) {
+                System.out.println("send toggle dataType request");
+                MiniPerfServerProtocol toggleRequest = MiniPerfServerProtocol.newBuilder().setToggleInterestingFiledNTF(
+                        ToggleInterestingFiledNTF.newBuilder().setDataType(ProfileReq.DataType.MEMORY.getNumber())).build();
+                mClient.sendMessage(toggleRequest.toByteArray());
+            }
+
+
+            // send ack request message
+            MiniPerfServerProtocol ackRequest = MiniPerfServerProtocol.newBuilder().setProfileNTFACK(ProfileNTFACK.newBuilder()).build();
+            mClient.sendMessage(ackRequest.toByteArray());
+
             MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(bytes);
             System.out.println("recv response: " + response);
             ProfileNtf profileNtf = response.getProfileNtf();

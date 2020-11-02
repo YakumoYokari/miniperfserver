@@ -24,8 +24,8 @@ import androidx.annotation.NonNull;
 
 //TODO bug
 public class FpsMonitor implements IMonitor<FpsInfo> {
-
     private static final String TAG = "FpsMonitor";
+    private static final boolean DEBUG = false;
     private final static String SERVICE_NAME = "SurfaceFlinger";
     private String mLayerName;
     private long mRefreshPeriod;
@@ -42,9 +42,11 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         timestamps = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--latency", layerName});
         if (timestamps.size() > 0) {
             mRefreshPeriod = Long.parseLong(timestamps.get(0));
-            Log.i(TAG, "refresh period is " + mRefreshPeriod);
+            //Log.i(TAG, "refresh period is " + mRefreshPeriod);
         }
-        Log.i(TAG, "collect frame data from dumpsys success : " + timestamps.toString());
+        if (DEBUG) {
+            Log.i(TAG, "collect frame data from dumpsys success : " + timestamps.toString());
+        }
         return timestamps;
     }
 
@@ -150,9 +152,11 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
 
     private List<Long> getNewFrameTimesForLayer(@NonNull String layerName) {
         List<String> framesData = getFramesDataFromDumpsys(layerName);
-        Log.i(TAG, "Layer Name :  " + layerName);
-        Log.i(TAG, "frame times size :  " + framesData.size());
-        Log.i(TAG, "now last time is : " + mLastTime);
+        if (DEBUG) {
+            Log.i(TAG, "Layer Name :  " + layerName);
+            Log.i(TAG, "frame times size :  " + framesData.size());
+            Log.i(TAG, "now last time is : " + mLastTime);
+        }
         if (framesData.size() == 1) {
             Log.e(TAG, "can't get frames data !");
             return null;
@@ -167,9 +171,12 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
                 }
             }
         }
-        if (!overlap)
+        if (!overlap) {
             Log.e(TAG, "No overlap with previous poll, we missed some frames!");
-        Log.i(TAG, "Elapsed times size : " + mElapsedTimes.size());
+        }
+        if (DEBUG) {
+            Log.i(TAG, "Elapsed times size : " + mElapsedTimes.size());
+        }
         List<Long> newFrameTimes = new ArrayList<>();
         if (mLastTime == 0) {
             if (mElapsedTimes.size() > 0) {
@@ -222,12 +229,14 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         FpsInfo fpsInfo = new FpsInfo();
         List<Long> newFrameTimes = getNewFrameTimes(targetApp.getPackageName());
         if (newFrameTimes == null) {
-            Log.v(TAG, "no refresh!");
+            Log.w(TAG, "no refresh!");
             fpsInfo.setFps(FPS.newBuilder().build());
             fpsInfo.setFrameTime(FrameTime.newBuilder().build());
             return fpsInfo;
         }
-        Log.i(TAG, "collect new frame times success : " + newFrameTimes.size() + " " + newFrameTimes);
+        if (DEBUG) {
+            Log.i(TAG, "collect new frame times success : " + newFrameTimes.size() + " " + newFrameTimes);
+        }
 
 
         List<Long> frameTimes = new LinkedList<>();
@@ -240,7 +249,10 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
 
         float fps = (frameTimes.size())  /* frame count */
                 / ((newFrameTimes.get(newFrameTimes.size() - 1) - newFrameTimes.get(0)) / (float) 1e9) /* second */;
-        Log.i(TAG, "collect fps success : " + fps);
+
+        if (DEBUG) {
+            Log.i(TAG, "collect fps success : " + fps);
+        }
 
         fpsInfo.setFps(FPS.newBuilder().setFps(fps).build());
         fpsInfo.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes).build());
@@ -252,7 +264,9 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
                 data.setFrameTime(FrameTime.newBuilder().addAllFrameTime(frameTimes));
             }
         }
-        Log.i(TAG, "collect fps info success : " + fpsInfo.toString());
+        if (DEBUG) {
+            Log.i(TAG, "collect fps info success : " + fpsInfo.toString());
+        }
         //clear cache
         mElapsedTimes.clear();
         return fpsInfo;

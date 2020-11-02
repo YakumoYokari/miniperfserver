@@ -36,7 +36,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
     private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
 
     public MemoryMonitor() {
-        Looper.prepare();
+        Looper.prepare(); // TODO: java.lang.RuntimeException: Only one Looper may be created per thread
         Context context = ActivityThread.systemMain().getSystemContext();
         //mActivityManager = new ServiceManager().getActivityManager();
         mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
