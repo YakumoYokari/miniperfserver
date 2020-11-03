@@ -139,7 +139,17 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
             }
         } else {
             // "SurfaceView"
+            // "<packageName>/<activityName>"
             candidates.add(new LayerCandidate("SurfaceView", 100));
+            List<String> lines = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{ "--list" });
+            for (String line : lines) {
+                line = line.trim();
+                if (line.startsWith(layerNamePrefix2)) {
+                    candidates.add(new LayerCandidate(line, 80));
+                } else if (line.contains(packageName)) {
+                    candidates.add(new LayerCandidate(line, 60));
+                }
+            }
         }
 
         List<String> layers = new ArrayList<>();
@@ -225,7 +235,7 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
 
     @Override
     public FpsInfo collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
-        Log.i(TAG, "start collect fps info");
+        //Log.i(TAG, "start collect fps info");
         FpsInfo fpsInfo = new FpsInfo();
         List<Long> newFrameTimes = getNewFrameTimes(targetApp.getPackageName());
         if (newFrameTimes == null) {
@@ -247,8 +257,9 @@ public class FpsMonitor implements IMonitor<FpsInfo> {
         //jank
         JankInfo jankInfo = checkJank(frameTimes);
 
-        float fps = (frameTimes.size())  /* frame count */
-                / ((newFrameTimes.get(newFrameTimes.size() - 1) - newFrameTimes.get(0)) / (float) 1e9) /* second */;
+        float fps = frameTimes.size() > 0
+                ? (frameTimes.size())  /* frame count */ / ((newFrameTimes.get(newFrameTimes.size() - 1) - newFrameTimes.get(0)) / (float) 1e9) /* second */
+                : 0;
 
         if (DEBUG) {
             Log.i(TAG, "collect fps success : " + fps);
