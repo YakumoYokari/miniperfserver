@@ -225,6 +225,7 @@ public class MiniPerfServer implements SocketServer.Callback {
     public byte[] onMessage(SocketServer.ClientConnection clientConnection, byte[] msg) {
         try {
             MiniPerfServerProtocol request = MiniPerfServerProtocol.parseFrom(msg);
+            Log.i(TAG, "recv message: " + request.toString() + ", client=" + clientConnection.getClientName());
             return handleRequestMessage(clientConnection, request);
         } catch (Throwable e) {
             e.printStackTrace();

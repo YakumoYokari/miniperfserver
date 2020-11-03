@@ -133,7 +133,8 @@ public class SocketServerUnitTest {
     @Test
     public void profileReqTest() throws IOException {
         String packageName = "com.tencent.tmgp.jx3m";
-        packageName = "com.xsj.jxsj3.xsj";
+        //packageName = "com.xsj.jxsj3.xsj";
+        packageName = "cn.testplus.qc_agent";
         int pid = 3104;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
@@ -176,7 +177,6 @@ public class SocketServerUnitTest {
             byte[] bytes = mClient.readMessage();
 
             // send toggle dataType message
-            System.out.println("send toggle dataType request");
 
             if (i % 10 == 0) {
                 System.out.println("send toggle dataType request");
@@ -184,6 +184,8 @@ public class SocketServerUnitTest {
                         ToggleInterestingFiledNTF.newBuilder().setDataType(ProfileReq.DataType.MEMORY.getNumber())).build();
                 mClient.sendMessage(toggleRequest.toByteArray());
             }
+
+
 
 
             // send ack request message

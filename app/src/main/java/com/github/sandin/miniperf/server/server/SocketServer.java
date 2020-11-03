@@ -3,6 +3,7 @@ package com.github.sandin.miniperf.server.server;
 import android.net.LocalServerSocket;
 import android.net.LocalSocket;
 import android.net.LocalSocketAddress;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.DataInputStream;
@@ -196,10 +197,10 @@ public class SocketServer {
         try {
             startConnectionMonitorThread();
             createServerSocket();
-            Log.i(TAG, "server start listening...");
             while (true) {
                 ClientConnection connection = acceptAndCreateNewConnection();
                 if (connection != null) {
+                    Log.i(TAG, "server got new connection, client address=" + connection.getClientName());
                     mThreadPool.execute(connection); // handle connection
                     mConnectionsLock.writeLock().lock();
                     try {
@@ -231,8 +232,10 @@ public class SocketServer {
     private void createServerSocket() throws IOException {
         if (mSocketType == TYPE_NORMAL_SOCKET) {
             mServerSocket = new ServerSocket(mSocketPort);
+            Log.i(TAG, "server start listening..., port=" + mSocketPort);
         } else if (mSocketType == TYPE_LOCAL_SOCKET) {
             mLocalServerSocket = new LocalServerSocket(mSocketName);
+            Log.i(TAG, "server start listening..., unix domain socket name=" + mSocketName);
         } else {
             throw new IllegalStateException("unknown server socket type");
         }
@@ -253,10 +256,10 @@ public class SocketServer {
                             ClientConnection connection = it.next();
                             if (connection != null) {
                                 if (!connection.isConnected()) {
-                                    Log.w(TAG, "The connection is not connected, remove it from connection pool!");
+                                    Log.w(TAG, "The connection is not connected, remove it from connection pool, client=" + connection.getClientName());
                                     it.remove();
                                 } else if (connection.getIdleTime() > MAX_CONNECTION_IDLE_TIME_MS) {
-                                    Log.w(TAG, "The connection is no long activated, force close and remove it from connection pool!");
+                                    Log.w(TAG, "The connection is no long activated, force close and remove it from connection pool! client=" + connection.getClientName());
                                     connection.close();
                                     it.remove();
                                 }
@@ -284,11 +287,9 @@ public class SocketServer {
         try {
             if (mSocketType == TYPE_NORMAL_SOCKET) {
                 Socket socket = mServerSocket.accept();
-                Log.i(TAG, "server got new connection, client address=" + socket.getLocalSocketAddress());
                 return new ClientConnection(socket, mCallback);
             } else if (mSocketType == TYPE_LOCAL_SOCKET) {
                 LocalSocket socket = mLocalServerSocket.accept();
-                Log.i(TAG, "server got new connection, client address=" + socket.getLocalSocketAddress());
                 return new ClientConnection(socket, mCallback);
             }
         } catch (IOException e) {
@@ -316,13 +317,14 @@ public class SocketServer {
         @Nullable
         private final Callback mCallback;
 
-        private long mIdleTime = 0;
+        private long mLastActiveTime;
 
         public ClientConnection(@NonNull LocalSocket socket, Callback callback) throws IOException {
             mLocalSocket = socket;
             mLocalSocket.setSoTimeout(SOCKET_CONNECTION_TIMEOUT_MS);
             mCallback = callback;
 
+            mLastActiveTime = SystemClock.uptimeMillis();
             mSocketInputStream = new DataInputStream(socket.getInputStream());
             mSocketOutputStream = new DataOutputStream(socket.getOutputStream());
         }
@@ -332,6 +334,7 @@ public class SocketServer {
             mSocket.setSoTimeout(SOCKET_CONNECTION_TIMEOUT_MS);
             mCallback = callback;
 
+            mLastActiveTime = SystemClock.uptimeMillis();
             mSocketInputStream = new DataInputStream(mSocket.getInputStream());
             mSocketOutputStream = new DataOutputStream(mSocket.getOutputStream());
         }
@@ -351,7 +354,7 @@ public class SocketServer {
                     return socketAddress.getName();
                 }
             }
-            return null;
+            return toString();
         }
 
         /**
@@ -378,11 +381,10 @@ public class SocketServer {
                     if (response != null) {
                         sendMessage(response);
                     }
-                    mIdleTime = 0; // reset timer
+                    mLastActiveTime = SystemClock.uptimeMillis();
                     errorCount = 0;
                 } catch (SocketTimeoutException e) {
                     e.printStackTrace();
-                    mIdleTime += SOCKET_CONNECTION_TIMEOUT_MS;
                 } catch (EOFException e) {
                     Log.e(TAG, "close connection: " + e.getMessage());
                     close(); // close connection
@@ -422,7 +424,7 @@ public class SocketServer {
          * Get client idle time(ms)
          */
         public long getIdleTime() {
-            return mIdleTime;
+            return SystemClock.uptimeMillis() - mLastActiveTime;
         }
 
         /**
@@ -431,7 +433,7 @@ public class SocketServer {
          * @return message
          */
         private byte[] readMessage() throws IOException {
-            Log.v(TAG, "try to read message");
+            Log.v(TAG, "try to read message, client=" + this.getClientName());
             int length = mSocketInputStream.readInt();
             Log.v(TAG, "try to read message length: " + length);
             byte[] buffer = new byte[length];
