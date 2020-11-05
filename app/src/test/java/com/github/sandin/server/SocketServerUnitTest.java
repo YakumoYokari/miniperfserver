@@ -3,6 +3,7 @@ package com.github.sandin.server;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
+import com.github.sandin.miniperf.server.proto.CheckDeviceReq;
 import com.github.sandin.miniperf.server.proto.CoreUsage;
 import com.github.sandin.miniperf.server.proto.CpuFreq;
 import com.github.sandin.miniperf.server.proto.CpuUsage;
@@ -48,23 +49,21 @@ import java.util.List;
 @RunWith(value = Parameterized.class)
 public class SocketServerUnitTest {
     private static final String TAG = "SocketTest";
-
-    private SocketClient mClient;
-
     private final String mHost;
     private final int mPort;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                { "127.0.0.1", 45455 },     // USB Mode: unix domain socket -> adb forward -> 45455
-//                { "10.11.252.38", 43300 }, // Wifi Mode: <phone ip>:<server port>
-        });
-    }
+    private SocketClient mClient;
 
     public SocketServerUnitTest(String host, int port) {
         mHost = host;
         mPort = port;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                {"127.0.0.1", 45455},     // USB Mode: unix domain socket -> adb forward -> 45455
+//                { "10.11.252.38", 43300 }, // Wifi Mode: <phone ip>:<server port>
+        });
     }
 
     @Before
@@ -134,7 +133,8 @@ public class SocketServerUnitTest {
     public void profileReqTest() throws IOException {
         String packageName = "com.tencent.tmgp.jx3m";
         //packageName = "com.xsj.jxsj3.xsj";
-        packageName = "cn.testplus.qc_agent";
+        //packageName = "cn.testplus.qc_agent";
+        packageName = "com.xiaomi.shop";
         int pid = 3104;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
@@ -143,16 +143,16 @@ public class SocketServerUnitTest {
         System.out.println("profile app : " + app.toString());
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder()
                 .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)
-                        //.addDataTypes(ProfileReq.DataType.MEMORY)
-                        //.addDataTypes(ProfileReq.DataType.CPU_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
-                        //.addDataTypes(ProfileReq.DataType.GPU_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.GPU_FREQ)
-                        .addDataTypes(ProfileReq.DataType.FPS)
-                        //.addDataTypes(ProfileReq.DataType.NETWORK_USAGE)
-                        //.addDataTypes(ProfileReq.DataType.BATTERY)
-                        //.addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
-                        .addDataTypes(ProfileReq.DataType.FRAME_TIME)
+                                //.addDataTypes(ProfileReq.DataType.MEMORY)
+                                //.addDataTypes(ProfileReq.DataType.CPU_USAGE)
+                                //.addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
+                                //.addDataTypes(ProfileReq.DataType.GPU_USAGE)
+                                //.addDataTypes(ProfileReq.DataType.GPU_FREQ)
+                                .addDataTypes(ProfileReq.DataType.FPS)
+                                //.addDataTypes(ProfileReq.DataType.NETWORK_USAGE)
+                                //.addDataTypes(ProfileReq.DataType.BATTERY)
+                                //.addDataTypes(ProfileReq.DataType.CPU_TEMPERATURE)
+                                .addDataTypes(ProfileReq.DataType.FRAME_TIME)
                         //.addDataTypes(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)
                         //.addDataTypes(ProfileReq.DataType.CORE_USAGE)
                 )
@@ -168,10 +168,10 @@ public class SocketServerUnitTest {
         profileRsp = MiniPerfServerProtocol.parseFrom(profileRspBytes);
         System.out.println("recv response: " + profileRsp);
 
-        String[] a={"cpuUsage","cpuFreq","GpuUsage","GpuFreq","Fps","Network","Memory","Power","Temp","FrameTime","MemoryDetail","CoreUsage"};
-        int[] ishas = {0,0,0,0,0,0,0,0,0,0,0,0,};
+        String[] a = {"cpuUsage", "cpuFreq", "GpuUsage", "GpuFreq", "Fps", "Network", "Memory", "Power", "Temp", "FrameTime", "MemoryDetail", "CoreUsage"};
+        int[] ishas = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,};
 
-        for (int i =0;i<50;i++) {
+        for (int i = 0; i < 50; i++) {
 
             // read profile message
             byte[] bytes = mClient.readMessage();
@@ -184,8 +184,6 @@ public class SocketServerUnitTest {
                         ToggleInterestingFiledNTF.newBuilder().setDataType(ProfileReq.DataType.MEMORY.getNumber())).build();
                 mClient.sendMessage(toggleRequest.toByteArray());
             }
-
-
 
 
             // send ack request message
@@ -211,33 +209,31 @@ public class SocketServerUnitTest {
             CoreUsage coreUsage = profileNtf.getCoreUsage();
             //System.out.println("123:"+profileNtf.getTemp().getTemp()+"   "+(profileNtf.getTemp().getTemp()>10&&ishas[0]==0)+"   ***"+ishas[8]);
 
-            ishas[0] = ((profileNtf.getCpuUsage().getAppUsage()!=0||profileNtf.getCpuUsage().getTotalUsage()!=0)&&ishas[0]==0?1:ishas[0]);
+            ishas[0] = ((profileNtf.getCpuUsage().getAppUsage() != 0 || profileNtf.getCpuUsage().getTotalUsage() != 0) && ishas[0] == 0 ? 1 : ishas[0]);
             //ishas[1] = (profileNtf.getCpuFreq().getCpuFreq(0)!=0&&ishas[1]==0?1:ishas[1]);
-            ishas[2] = (profileNtf.getGpuUsage().getGpuUsage()!=0&&ishas[2]==0?1:ishas[2]);
-            ishas[3] = (profileNtf.getGpuFreq().getGpuFreq()>0&&ishas[3]==0?1:ishas[3]);
-            ishas[4] = ((profileNtf.getFps().getFps()!=0||profileNtf.getFps().getBigJank()!=0||profileNtf.getFps().getJank()!=0)&&ishas[4]==0?1:ishas[4]);
-            ishas[5] = ((profileNtf.getNetwork().getDownload()>0||profileNtf.getNetwork().getUpload()>0)&&ishas[5]==0?1:ishas[5]);
-            ishas[6] = ((profileNtf.getMemory().getPss()!=0||profileNtf.getMemory().getSwap()!=0||profileNtf.getMemory().getVirtualMemory()!=0)&&ishas[6]==0?1:ishas[6]);
-            ishas[7] = ((profileNtf.getPower().getCurrent()!=0||profileNtf.getPower().getVoltage()!=0)&&ishas[7]==0?1:ishas[7]);
-            ishas[8] = (profileNtf.getTemp().getTemp()>10&&ishas[8]==0?1:ishas[8]);
-            ishas[9] = (profileNtf.getFrameTime().getFrameTimeCount()!=0&&ishas[9]==0?1:ishas[9]);
-            ishas[10] = ((profileNtf.getMemory().getMemoryDetail().getGfx()!=0||profileNtf.getMemory().getMemoryDetail().getGl()!=0||profileNtf.getMemory().getMemoryDetail().getNativePss()!=0||profileNtf.getMemory().getMemoryDetail().getUnknown()!=0)&&ishas[10]==0?1:ishas[10]);
-            ishas[11] = (profileNtf.getCoreUsage().getCoreUsageCount()!=0&&ishas[11]==0?1:ishas[11]);
+            ishas[2] = (profileNtf.getGpuUsage().getGpuUsage() != 0 && ishas[2] == 0 ? 1 : ishas[2]);
+            ishas[3] = (profileNtf.getGpuFreq().getGpuFreq() > 0 && ishas[3] == 0 ? 1 : ishas[3]);
+            ishas[4] = ((profileNtf.getFps().getFps() != 0 || profileNtf.getFps().getBigJank() != 0 || profileNtf.getFps().getJank() != 0) && ishas[4] == 0 ? 1 : ishas[4]);
+            ishas[5] = ((profileNtf.getNetwork().getDownload() > 0 || profileNtf.getNetwork().getUpload() > 0) && ishas[5] == 0 ? 1 : ishas[5]);
+            ishas[6] = ((profileNtf.getMemory().getPss() != 0 || profileNtf.getMemory().getSwap() != 0 || profileNtf.getMemory().getVirtualMemory() != 0) && ishas[6] == 0 ? 1 : ishas[6]);
+            ishas[7] = ((profileNtf.getPower().getCurrent() != 0 || profileNtf.getPower().getVoltage() != 0) && ishas[7] == 0 ? 1 : ishas[7]);
+            ishas[8] = (profileNtf.getTemp().getTemp() > 10 && ishas[8] == 0 ? 1 : ishas[8]);
+            ishas[9] = (profileNtf.getFrameTime().getFrameTimeCount() != 0 && ishas[9] == 0 ? 1 : ishas[9]);
+            ishas[10] = ((profileNtf.getMemory().getMemoryDetail().getGfx() != 0 || profileNtf.getMemory().getMemoryDetail().getGl() != 0 || profileNtf.getMemory().getMemoryDetail().getNativePss() != 0 || profileNtf.getMemory().getMemoryDetail().getUnknown() != 0) && ishas[10] == 0 ? 1 : ishas[10]);
+            ishas[11] = (profileNtf.getCoreUsage().getCoreUsageCount() != 0 && ishas[11] == 0 ? 1 : ishas[11]);
 
-            if(profileNtf.getCpuUsage().getAppUsage()>100||profileNtf.getCpuUsage().getAppUsage()<0||profileNtf.getCpuUsage().getTotalUsage()>100||profileNtf.getCpuUsage().getTotalUsage()<0){
-                ishas[0]=3;
+            if (profileNtf.getCpuUsage().getAppUsage() > 100 || profileNtf.getCpuUsage().getAppUsage() < 0 || profileNtf.getCpuUsage().getTotalUsage() > 100 || profileNtf.getCpuUsage().getTotalUsage() < 0) {
+                ishas[0] = 3;
             }
-            if(profileNtf.getGpuUsage().getGpuUsage()<0||profileNtf.getGpuUsage().getGpuUsage()>100)
-            {
-                ishas[2]=3;
+            if (profileNtf.getGpuUsage().getGpuUsage() < 0 || profileNtf.getGpuUsage().getGpuUsage() > 100) {
+                ishas[2] = 3;
             }
-
 
 
         }
         System.out.println();
-        for(int i= 0;i<ishas.length;i++){
-            if(ishas[i]!=1){
+        for (int i = 0; i < ishas.length; i++) {
+            if (ishas[i] != 1) {
                 System.out.println(a[i]);
             }
         }
@@ -254,6 +250,16 @@ public class SocketServerUnitTest {
         System.out.println("recv response: " + response);
     }
 
+    @Test
+    public void checkTest() throws IOException {
+        MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setCheckDeviceReq(CheckDeviceReq.newBuilder()).build();
+        System.out.println("send request: " + request);
+        mClient.sendMessage(request.toByteArray());
+        byte[] rsp = mClient.readMessage();
+        System.out.println("recv response bytes length: " + rsp.length);
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(rsp);
+        System.out.println("recv response: " + response);
+    }
 
 
 }

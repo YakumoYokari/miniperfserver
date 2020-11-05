@@ -21,6 +21,7 @@ import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.monitor.ScreenshotMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
+import com.github.sandin.miniperf.server.proto.CheckDeviceRsp;
 import com.github.sandin.miniperf.server.proto.EmptyRsp;
 import com.github.sandin.miniperf.server.proto.GetAppInfoRsp;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
@@ -32,6 +33,8 @@ import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
 import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.Power;
+import com.github.sandin.miniperf.server.proto.ProcessFoundNTF;
+import com.github.sandin.miniperf.server.proto.ProcessNotFoundNTF;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.ProfileRsp;
 import com.github.sandin.miniperf.server.proto.StopProfileRsp;
@@ -44,8 +47,6 @@ import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
 
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 /**
@@ -166,21 +167,24 @@ public class MiniPerfServer implements SocketServer.Callback {
                     break;
                 case "cputemp":
                     final CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
-                    TimerTask task = new TimerTask() {
-                        @Override
-                        public void run() {
-                            Temp temp = null;
-                            try {
-                                temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                            System.out.println("Temp : " + temp);
-                        }
-                    };
-                    Timer timer = new Timer();
-                    timer.scheduleAtFixedRate(task, 0, 1500);
-                    break;
+//                    TimerTask task = new TimerTask() {
+//                        @Override
+//                        public void run() {
+//                            Temp temp = null;
+//                            try {
+//                                temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
+//                            } catch (Exception e) {
+//                                e.printStackTrace();
+//                            }
+//                            System.out.println("Temp : " + temp);
+//                        }
+//                    };
+//                    Timer timer = new Timer();
+//                    timer.scheduleAtFixedRate(task, 0, 1500);
+                    while (true) {
+                        System.out.println(cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null));
+                        Thread.sleep(500);
+                    }
                 case "gpu":
                     GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
                     GpuUsageMonitor gpuUsageMonitor = new GpuUsageMonitor();
@@ -196,6 +200,7 @@ public class MiniPerfServer implements SocketServer.Callback {
                     System.out.println(power.getCurrent());
                     System.out.println(power.getVoltage());
                     System.out.println(Build.BRAND);
+                    break;
 
                 default:
                     System.out.println("[Error] unknown command: " + command);
@@ -255,6 +260,8 @@ public class MiniPerfServer implements SocketServer.Callback {
             case TOGGLEINTERESTINGFILEDNTF:
                 Log.i(TAG, "handleRequestMessage: TOGGLEINTERESTINGFILEDNTF");
                 return handleToggleInterestingFiledNtf(request.getToggleInterestingFiledNTF());
+            case CHECKDEVICEREQ:
+                return handleCheckDeviceReq();
             default:
                 Log.i(TAG, "handleRequestMessage: Unknown protocol " + request.getProtocolCase());
                 break;
@@ -299,6 +306,30 @@ public class MiniPerfServer implements SocketServer.Callback {
         Log.i(TAG, "recv profile data types : " + dataTypes.toString());
         int errorCode = 0;
         int sessionId = 0;
+        boolean appIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, packageName);
+        Log.i(TAG, "now app state is : " + appIsRunning);
+        //waiting for app start
+        while (!appIsRunning) {
+            try {
+                Log.i(TAG, "wait for app start");
+                clientConnection.sendMessage(
+                        MiniPerfServerProtocol.newBuilder().setProcessNotFoundNTF(
+                                ProcessNotFoundNTF.newBuilder()
+                        ).build().toByteArray()
+                );
+                Thread.sleep(500);
+                appIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, packageName);
+                Log.i(TAG, "now app state is : " + appIsRunning);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        //found process
+        clientConnection.sendMessage(
+                MiniPerfServerProtocol.newBuilder().setProcessFoundNTF(
+                        ProcessFoundNTF.newBuilder()
+                ).build().toByteArray()
+        );
         PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
         session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
         if (session != null) {
@@ -356,5 +387,32 @@ public class MiniPerfServer implements SocketServer.Callback {
     private byte[] handleHelloReq() {
         MiniPerfServerProtocol emptyRsp = MiniPerfServerProtocol.newBuilder().setEmptyRsp(EmptyRsp.newBuilder()).build();
         return emptyRsp.toByteArray();
+    }
+
+    private byte[] handleCheckDeviceReq() {
+        GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
+        GpuUsageMonitor gpuUsageMonitor = new GpuUsageMonitor();
+        CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
+        CheckDeviceRsp.Builder rspBuilder = CheckDeviceRsp.newBuilder();
+        try {
+            GpuUsage gpuUsage = gpuUsageMonitor.collect(null, System.currentTimeMillis(), null);
+            GpuFreq gpuFreq = gpuFreqMonitor.collect(null, System.currentTimeMillis(), null);
+            Temp temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
+            if (gpuUsage != null)
+                rspBuilder.setGpuUsage(true);
+            else
+                rspBuilder.setGpuUsage(false);
+            if (gpuFreq.getGpuFreq() != 0)
+                rspBuilder.setGpuFreq(true);
+            else
+                rspBuilder.setGpuFreq(false);
+            if (temp.getTemp() > 0 && temp.getTemp() <= 100)
+                rspBuilder.setCpuTemperature(true);
+            else
+                rspBuilder.setCpuTemperature(false);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return MiniPerfServerProtocol.newBuilder().setCheckDeviceRsp(rspBuilder).build().toByteArray();
     }
 }

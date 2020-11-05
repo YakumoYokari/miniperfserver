@@ -4,6 +4,9 @@ import android.content.Context;
 import android.os.SystemClock;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
+
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
@@ -14,50 +17,49 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import androidx.annotation.Nullable;
-import androidx.annotation.VisibleForTesting;
-
 /**
  * The Performance Monitor
  */
 public class PerformanceMonitor {
     private static final String TAG = "PerformanceMonitor";
-
+    private static final String FPS_MONITOR = "fps";
+    private static final String SCREENSHOT_MONITOR = "screenshot";
+    private static final String MEMORY_MONITOR = "memory";
+    private static final String CPU_MONITOR = "cpu";
+    private static final String CPU_TEMPERATURE_MONITOR = "cpu_temperature";
+    private static final String GPU_USAGE_MONITOR = "gpu_usage";
+    private static final String GPU_FREQ_MONITOR = "gpu_freq";
+    private static final String NETWORK_MONITOR = "network";
+    private static final String BATTERY_MONITOR = "battery";
     /**
      * Interval time in Ms
      */
     private final int mIntervalMs;
     private final int mScreenshotIntervalMs;
-
     /**
      * Current monitors
      */
     private final Map<String, IMonitor<?>> mMonitors = new HashMap<>();
-
     /**
      * Data Callback
      */
     private final List<Callback> mCallback = new ArrayList<>();
-
     /**
      * Data Type List
      */
     private final Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
-
     /**
      * Loop thread
-     *
+     * <p>
      * {@link PerformanceMonitor#mIntervalMs}
      */
     @Nullable
     private Thread mLoopThread;
-
     /**
      * Target application
      */
     @Nullable
     private TargetApp mTargetApp;
-
     private boolean mIsRunning = false;
     //TODO use context
     private Context mContext;
@@ -103,7 +105,7 @@ public class PerformanceMonitor {
         }
     }
 
-    private void notifySendCloseNtf(AppClosedNTF ntf){
+    private void notifySendCloseNtf(AppClosedNTF ntf) {
         for (Callback callback : mCallback) {
             callback.sendAppClosedNTF(ntf);
         }
@@ -112,7 +114,7 @@ public class PerformanceMonitor {
     /**
      * Register a monitor
      *
-     * @param name name
+     * @param name    name
      * @param monitor monitor
      */
     private void registerMonitor(String name, IMonitor<?> monitor) {
@@ -197,16 +199,6 @@ public class PerformanceMonitor {
     public boolean isDataTypeEnabled(ProfileReq.DataType dataType) {
         return mDataTypes.get(dataType);
     }
-
-    private static final String FPS_MONITOR = "fps";
-    private static final String SCREENSHOT_MONITOR = "screenshot";
-    private static final String MEMORY_MONITOR = "memory";
-    private static final String CPU_MONITOR = "cpu";
-    private static final String CPU_TEMPERATURE_MONITOR = "cpu_temperature";
-    private static final String GPU_USAGE_MONITOR = "gpu_usage";
-    private static final String GPU_FREQ_MONITOR = "gpu_freq";
-    private static final String NETWORK_MONITOR = "network";
-    private static final String BATTERY_MONITOR = "battery";
 
     private Map<ProfileReq.DataType, Boolean> getSubDataTypes(ProfileReq.DataType... dataTypes) {
         Map<ProfileReq.DataType, Boolean> copy = new HashMap<>();
@@ -391,10 +383,9 @@ public class PerformanceMonitor {
             while (mIsRunning) {
                 Log.i(TAG, System.currentTimeMillis() + " now running state is : " + mIsRunning);
                 long startTime = SystemClock.uptimeMillis();
-//                ProfileNtf collectData = collectData(startTime - mFirstTime);
                 ProfileNtf collectData = collectData(System.currentTimeMillis());
                 notifyCallbacks(collectData); // send data
-//                if (AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPid())) {
+//                if (AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName())) {
 //                    break;
 //                }
                 mTickCount++;
@@ -410,7 +401,7 @@ public class PerformanceMonitor {
             }
             Log.i(TAG, "application is close !");
 //            stop();
-            notifySendCloseNtf(AppClosedNTF.newBuilder().build());
+//            notifySendCloseNtf(AppClosedNTF.newBuilder().build());
         }
     }
 

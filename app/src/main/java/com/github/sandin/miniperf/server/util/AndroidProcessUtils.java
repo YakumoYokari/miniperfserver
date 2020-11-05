@@ -4,7 +4,6 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
 import java.util.List;
 
@@ -71,16 +70,16 @@ public final class AndroidProcessUtils {
      * 判断某一应用是否正在运行
      *
      * @param context     上下文
-     * @param pid
+     * @param packageName
      * @return true 表示正在运行，false 表示没有运行
      */
-    public static boolean checkAppIsRunning(Context context, int pid) {
+    public static boolean checkAppIsRunning(Context context, String packageName) {
         ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> lists ;
+        List<ActivityManager.RunningAppProcessInfo> lists;
         if (am != null) {
             lists = am.getRunningAppProcesses();
             for (ActivityManager.RunningAppProcessInfo appProcess : lists) {
-                if (appProcess.pid == pid) {
+                if (appProcess.processName.equals(packageName)) {
                     return true;
                 }
             }

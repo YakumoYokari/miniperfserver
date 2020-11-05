@@ -1,7 +1,5 @@
 package com.github.sandin.miniperf.server.session;
 
-import android.util.Log;
-
 import androidx.annotation.NonNull;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -12,7 +10,6 @@ import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.server.SocketServer;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -70,20 +67,21 @@ public final class Session implements PerformanceMonitor.Callback {
      */
     @Override
     public void onUpdate(ProfileNtf data) {
-        //if (true && mConnection.isConnected()) { // TODO: Bug!!
-            MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProfileNtf(data).build();
-            mConnection.sendMessage(response.toByteArray());
-        //} else {
-        //    Log.w("MiniPerfServer", "disconnected, can not send data to client");
-            // TODO: disconnect
-        //}
+//        if (mConnection.isConnected()) { // TODO: Bug!!
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProfileNtf(data).build();
+        mConnection.sendMessage(response.toByteArray());
+//        } else {
+//            Log.w("MiniPerfServer", "disconnected, can not send data to client");
+//            stop();
+        // TODO: disconnect
+//        }
     }
 
     @Override
     public void sendAppClosedNTF(AppClosedNTF appClosedNTF) {
         //if (true && mConnection.isConnected()) { // TODO: Bug!!
-            MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setAppClosedNTF(appClosedNTF).build();
-            mConnection.sendMessage(response.toByteArray());
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setAppClosedNTF(appClosedNTF).build();
+        mConnection.sendMessage(response.toByteArray());
         //} else {
         //    Log.w("MiniPerfServer", "disconnected, can not send data to client");
         //    // TODO: disconnect
