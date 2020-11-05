@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -158,6 +159,8 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         float[] normalized_usage_per_cpu;
         float normalized_app_usage;
 
+        private static final String[] EMPTY_STRING_ARRAY = new String[0];
+
         public CPUStat(int pid) {
 
             this.pid = pid;
@@ -194,16 +197,17 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             for (int i = 0; i < cores; ++i) {
                 String Path="/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
                 List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(Path);
-                //Log.i(TAG, "CPUStat123: "+"   "+i+"    "+str.toString());
+                Log.i(TAG, "CPUStat123: "+"   "+i+"    "+str.toString());
                 if(str.size()>0){
                     long tmp = Long.valueOf(str.get(0));
                     max_freq[i] = tmp;
-                    //Log.i(TAG, "CPUStat123433:"+ max_freq[i]);
+                    Log.i(TAG, "CPUStat123433:"+ max_freq[i]);
                 }else{
                     offline++;
                     //Log.i(TAG, "CPUStat1234:"+offline);
                 }
             }
+            Log.i(TAG, "CPUStat: 11111111");
             if (offline == cores)
                 allow_normalization = false;
 
@@ -213,6 +217,39 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             have_current_freq = true; // guess
 
             System.out.println("[DEBUG] allow_normalization = " + allow_normalization);
+        }
+
+        private String[] apache_split(String str){
+            if (str == null) {
+                return null;
+            }
+            final int len = str.length();
+            if (len == 0) {
+                return EMPTY_STRING_ARRAY;
+            }
+            final List<String> list = new ArrayList<String>();
+            int i = 0;
+            int start = 0;
+            boolean match = false;
+            boolean lastMatch = false;
+            while (i < len) {
+                if (str.charAt(i) == ' ') {
+                    if (match) {
+                        list.add(str.substring(start, i));
+                        match = false;
+                        lastMatch = true;
+                    }
+                    start = ++i;
+                    continue;
+                }
+                lastMatch = false;
+                match = true;
+                i++;
+            }
+            if (match && lastMatch) {
+                list.add(str.substring(start, i));
+            }
+            return list.toArray(EMPTY_STRING_ARRAY);
         }
 
         private String _read_file(String path){
@@ -252,7 +289,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             int pos = line.lastIndexOf(')');
             if (pos + 2 >= line.length()) return false;
             line = line.substring(pos + 2);
-            String[] tokens = line.split("\\s+");
+            String[] tokens = apache_split(line);
             current_app.utime = Long.parseLong(tokens[11]);
             current_app.stime = Long.parseLong(tokens[12]);
             // System.out.println("[DEBUG] current: utime=" + current_app.utime + "; stime=" + current_app.stime);
@@ -291,12 +328,10 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             current_freq[x] = 0;
             try{
                 reader =new BufferedReader(new FileReader(f));
-                Thread.sleep(20);
+                //Thread.sleep(20);
                 int tmp =Integer.parseInt(reader.readLine());
                 current_freq[x] = tmp;
-            } catch(InterruptedException e){
-                return false;
-            } catch(FileNotFoundException e){
+            }  catch(FileNotFoundException e){
                 // e.printStackTrace();
                 current_freq[x] = 0;
                 return true;
@@ -325,7 +360,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             long total_tic = 0;
             if(str.size()>0){
                 for(String line:str){
-                    String[] toks = line.split("\\s+");
+                    String[] toks = apache_split(line);
                     if (toks.length < 2) break;
                     sum += Long.parseLong(toks[0]) * Long.parseLong(toks[1]);
                     total_tic += Long.parseLong(toks[1]);
@@ -344,7 +379,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             if (str.size()==0) return false;
             String line = str.get(0);
             Log.i(TAG, "_read_cpu: str:"+line);
-            String[] tokens = line.split("\\s+");
+            String[] tokens = apache_split(line);
             // System.out.println(tokens[0]);
             if (tokens.length >= 8 && tokens[0].equals("cpu")){
                 current.user = Long.parseLong(tokens[1]);
@@ -379,7 +414,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         private int _read_cpux(String str){
             String line = str;
             Log.i(TAG, "_read_cpux: str"+line);
-            String[] tokens = line.split("\\s+");
+            String[] tokens = apache_split(line);
             if (tokens.length < 8){
                 return -1;
             }
