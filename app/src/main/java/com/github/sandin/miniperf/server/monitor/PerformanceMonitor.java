@@ -11,6 +11,7 @@ import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -383,11 +384,13 @@ public class PerformanceMonitor {
             while (mIsRunning) {
                 Log.i(TAG, System.currentTimeMillis() + " now running state is : " + mIsRunning);
                 long startTime = SystemClock.uptimeMillis();
+                boolean appIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName());
+                Log.i(TAG, System.currentTimeMillis() + " now app state is " + appIsRunning);
+                if (!appIsRunning)
+                    break;
                 ProfileNtf collectData = collectData(System.currentTimeMillis());
                 notifyCallbacks(collectData); // send data
-//                if (AndroidProcessUtils.checkAppIsRunning(mContext, mTargetApp.getPackageName())) {
-//                    break;
-//                }
+                System.out.println();
                 mTickCount++;
                 long costTime = SystemClock.uptimeMillis() - startTime;
                 long sleepTime = mIntervalMs - costTime - 2;  // | costTime | sleepTime |

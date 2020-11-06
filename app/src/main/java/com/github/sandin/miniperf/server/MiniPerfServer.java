@@ -11,6 +11,7 @@ import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.app.BuildConfig;
 import com.github.sandin.miniperf.server.bean.TargetApp;
+import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
 import com.github.sandin.miniperf.server.monitor.CpuTemperatureMonitor;
@@ -45,6 +46,7 @@ import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
+import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
 
@@ -201,7 +203,13 @@ public class MiniPerfServer implements SocketServer.Callback {
                     System.out.println(power.getVoltage());
                     System.out.println(Build.BRAND);
                     break;
-
+                case "alive":
+//                    while (true) {
+//                        boolean appIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, packageName);
+//                        System.out.println(appIsRunning);
+//                        Thread.sleep(500);
+//                    }
+                    break;
                 default:
                     System.out.println("[Error] unknown command: " + command);
                     break;
@@ -238,7 +246,7 @@ public class MiniPerfServer implements SocketServer.Callback {
         return null;
     }
 
-    private byte[] handleRequestMessage(SocketServer.ClientConnection clientConnection, MiniPerfServerProtocol request) {
+    private byte[] handleRequestMessage(SocketServer.ClientConnection clientConnection, MiniPerfServerProtocol request) throws Exception {
         switch (request.getProtocolCase()) {
             // TODO: other requests
             case PROFILEREQ:
@@ -299,9 +307,6 @@ public class MiniPerfServer implements SocketServer.Callback {
         TargetApp targetApp = new TargetApp();
         String packageName = request.getProfileApp().getAppInfo().getPackageName();
         targetApp.setPackageName(packageName);
-        //TODO userid is pid
-        //targetApp.setPid(request.getProfileApp().getAppInfo().getUserId());
-        targetApp.setPid(AndroidProcessUtils.getPid(mContext, packageName));
         List<ProfileReq.DataType> dataTypes = request.getDataTypesList();
         Log.i(TAG, "recv profile data types : " + dataTypes.toString());
         int errorCode = 0;
@@ -330,6 +335,7 @@ public class MiniPerfServer implements SocketServer.Callback {
                         ProcessFoundNTF.newBuilder()
                 ).build().toByteArray()
         );
+        targetApp.setPid(AndroidProcessUtils.getPid(mContext, packageName));
         PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
         session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
         if (session != null) {
@@ -389,30 +395,29 @@ public class MiniPerfServer implements SocketServer.Callback {
         return emptyRsp.toByteArray();
     }
 
-    private byte[] handleCheckDeviceReq() {
-        GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
-        GpuUsageMonitor gpuUsageMonitor = new GpuUsageMonitor();
+    private byte[] handleCheckDeviceReq() throws Exception {
+        List<String> gpuFreqContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.GPU_CLOCK_SYSTEM_FILE_PATHS);
+        List<String> gpuUsageContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.GPU_USAGE_SYSTEM_FILE_PATHS);
         CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
+        Temp temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
+        System.out.println("get temp success : " + temp);
         CheckDeviceRsp.Builder rspBuilder = CheckDeviceRsp.newBuilder();
-        try {
-            GpuUsage gpuUsage = gpuUsageMonitor.collect(null, System.currentTimeMillis(), null);
-            GpuFreq gpuFreq = gpuFreqMonitor.collect(null, System.currentTimeMillis(), null);
-            Temp temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
-            if (gpuUsage != null)
-                rspBuilder.setGpuUsage(true);
-            else
-                rspBuilder.setGpuUsage(false);
-            if (gpuFreq.getGpuFreq() != 0)
-                rspBuilder.setGpuFreq(true);
-            else
-                rspBuilder.setGpuFreq(false);
-            if (temp.getTemp() > 0 && temp.getTemp() <= 100)
-                rspBuilder.setCpuTemperature(true);
-            else
-                rspBuilder.setCpuTemperature(false);
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (gpuFreqContent.size() > 0) {
+            rspBuilder.setGpuFreq(true);
+        } else {
+            rspBuilder.setGpuFreq(false);
         }
+        if (gpuUsageContent.size() > 0) {
+            rspBuilder.setGpuUsage(true);
+        } else {
+            rspBuilder.setGpuUsage(false);
+        }
+        if (temp.getTemp() >= 0 && temp.getTemp() <= 100) {
+            rspBuilder.setCpuTemperature(true);
+        } else {
+            rspBuilder.setCpuTemperature(false);
+        }
+        System.out.println(rspBuilder.build());
         return MiniPerfServerProtocol.newBuilder().setCheckDeviceRsp(rspBuilder).build().toByteArray();
     }
 }
