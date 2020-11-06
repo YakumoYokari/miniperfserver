@@ -453,6 +453,16 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             // String stat = _read_file("/proc/stat");
             // System.out.println(stat);
             List<String> str1 = ReadSystemInfoUtils.readInfoFromSystemFile(stat);
+            if (have_current_freq){
+                int offline = 0;
+                for(int i = 0; i < cores; ++i){
+                    _read_current_freq(i);
+                    if (current_freq[i] == 0) offline++;
+                }
+                if (offline == cores){
+                    have_current_freq = false;
+                }
+            }
             try{
                 if (! _read_cpu(str1)) return false;
                 boolean[] processed = new boolean[cores];
@@ -493,16 +503,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 }
             }
 
-            if (have_current_freq){
-                int offline = 0;
-                for(int i = 0; i < cores; ++i){
-                    _read_current_freq(i);
-                    if (current_freq[i] == 0) offline++;
-                }
-                if (offline == cores){
-                    have_current_freq = false;
-                }
-            }
+
 
             return true;
         }
