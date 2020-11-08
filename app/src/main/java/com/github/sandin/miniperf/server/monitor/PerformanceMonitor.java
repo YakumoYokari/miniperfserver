@@ -403,8 +403,10 @@ public class PerformanceMonitor {
                 }
             }
             Log.i(TAG, "application is close !");
-//            stop();
-//            notifySendCloseNtf(AppClosedNTF.newBuilder().build());
+            //after app close , close server and clear monitors
+            Log.i(TAG,"stop performance monitor");
+            notifySendCloseNtf(AppClosedNTF.newBuilder().build());
+            stop();
         }
     }
 
