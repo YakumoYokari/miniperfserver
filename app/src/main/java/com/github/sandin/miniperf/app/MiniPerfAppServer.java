@@ -77,20 +77,21 @@ public class MiniPerfAppServer implements Runnable {
         private byte[] handleRequest(MiniPerfAppProtocol request) {
             switch (request.getProtocolCase()) {
                 case APPHELLOREQ:
-                    return AppHelloRsp.newBuilder().build().toByteArray();
+                    AppHelloRsp appHelloRsp = AppHelloRsp.newBuilder().build();
+                    return MiniPerfAppProtocol.newBuilder().setAppHelloRsp(appHelloRsp).build().toByteArray();
                 case GETSCREENINFOREQ:
                     GetScreenInfoRsp screenInfo = PhoneInfoManager.getScreenInfo(mContext);
-                    return screenInfo.toByteArray();
+                    return MiniPerfAppProtocol.newBuilder().setGetScreenInfoRsp(screenInfo).build().toByteArray();
                 case GETLMKTHRESHOLDREQ:
                     int lmkThreshold = PhoneInfoManager.getLMKThreshold(mContext);
-                    return GetLMKThresholdRsp.newBuilder()
+                    GetLMKThresholdRsp getLMKThresholdRsp = GetLMKThresholdRsp.newBuilder()
                             .setMemoryThreshold(lmkThreshold)
-                            .build()
-                            .toByteArray();
+                            .build();
+                    return MiniPerfAppProtocol.newBuilder().setGetLMKThresholdRsp(getLMKThresholdRsp).build().toByteArray();
                 case GETAPPINFOREQ:
                     List<AppInfo> appList = PhoneInfoManager.getAppInfoList(mContext);
                     GetAppInfoRsp getAppInfoRsp = GetAppInfoRsp.newBuilder().addAllAppInfo(appList).build();
-                    return getAppInfoRsp.toByteArray();
+                    return MiniPerfAppProtocol.newBuilder().setGetAppInfoRsp(getAppInfoRsp).build().toByteArray();
             }
             return null;
         }
