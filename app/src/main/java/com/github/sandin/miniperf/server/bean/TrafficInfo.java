@@ -4,6 +4,11 @@ public class TrafficInfo {
     private long upload;
     private long download;
 
+    public TrafficInfo(long upload, long download) {
+        this.upload = upload;
+        this.download = download;
+    }
+
     public long getUpload() {
         return upload;
     }

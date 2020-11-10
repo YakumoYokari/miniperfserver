@@ -136,6 +136,7 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
         String packageName = "com.xiaomi.shop";
+        packageName = "com.tencent.tmgp.jx3m";
         int pid = AndroidProcessUtils.getPid(mContext, packageName);
         int uid = AndroidProcessUtils.getUid(mContext, packageName);
         TargetApp targetApp = new TargetApp(packageName, uid);
@@ -152,10 +153,17 @@ public class MiniPerfServer implements SocketServer.Callback {
                     Network last = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
                     System.out.println(last.getUpload());
                     System.out.println(last.getDownload());
-                    Thread.sleep(1 * 1000);
-                    Network now = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
-                    System.out.println(now.getUpload());
-                    System.out.println(now.getDownload());
+//                    Thread.sleep(1 * 1000);
+//                    Network now = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+//                    System.out.println(now.getUpload());
+//                    System.out.println(now.getDownload());
+//                    Network fromSystemFile = networkMonitor.getTrafficsFromSystemFile(uid);
+//                    System.out.println(fromSystemFile.getDownload());
+//                    Network fromNetworkStats = networkMonitor.getTrafficsFromNetworkStatsManager(uid);
+//                    Network fromTrafficStats = networkMonitor.getTrafficsFromTrafficStats(uid);
+//                    System.out.println(fromSystemFile);
+//                    System.out.println(fromNetworkStats);
+//                    System.out.println(fromTrafficStats);
                     break;
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);

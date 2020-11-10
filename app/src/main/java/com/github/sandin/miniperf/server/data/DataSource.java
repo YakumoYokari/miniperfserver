@@ -23,7 +23,18 @@ public final class DataSource {
     //TODO 暂未发现使用的温度传感器和cpu核有关系 此为备用数据源
     public static final String[] CPU_TEMPERATURE_SYSTEM_FILE_PATHS_SPARE = {
             "/sys/devices/virtual/thermal/thermal_zone0/temp",
-            "/sys/class/thermal/thermal_zone0/temp"
+            "/sys/class/thermal/thermal_zone0/temp",
+            "/sys/kernel/debug/tegra_thermal/temp_tj",
+            "/sys/devices/platform/s5p-tmu/curr_temp",
+            "/sys/devices/virtual/thermal/thermal_zone1/temp",//常用
+            "/sys/devices/system/cpu/cpufreq/cput_attributes/cur_temp",
+            "/sys/devices/virtual/hwmon/hwmon2/temp1_input",
+            "/sys/devices/platform/coretemp.0/temp2_input",
+            "/sys/devices/system/cpu/cpu0/cpufreq/cpu_temp",
+            "/sys/devices/platform/omap/omap_temp_sensor.0/temperature",
+            "/sys/class/thermal/thermal_zone1/temp",
+            "/sys/devices/platform/s5p-tmu/temperature",
+            "/sys/devices/w1 bus master/w1_master_attempts",
     };
 
     public static final String[] CURRENT_SYSTEM_FILE_PATHS = {
