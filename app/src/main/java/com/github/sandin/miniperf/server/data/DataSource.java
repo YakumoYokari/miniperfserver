@@ -9,7 +9,7 @@ public final class DataSource {
 //            "/sys/devices/system/cpu/cpufreq/cput_attributes/cur_temp",
 //            "/sys/devices/virtual/hwmon/hwmon2/temp1_input",
 //            "/sys/devices/platform/coretemp.0/temp2_input",
-            "/sys/devices/virtual/thermal/thermal_zone0/temp",
+//            "/sys/devices/virtual/thermal/thermal_zone0/temp",
 //            "/sys/devices/system/cpu/cpu0/cpufreq/cpu_temp",
             "/sys/class/thermal/thermal_zone7/temp",//目前看来最准确的
 //            "/sys/devices/platform/omap/omap_temp_sensor.0/temperature",
@@ -17,6 +17,12 @@ public final class DataSource {
             "/sys/devices/virtual/thermal/thermal_zone7/temp",//目前看来最准确的
 //            "/sys/devices/platform/s5p-tmu/temperature",
 //            "/sys/devices/w1 bus master/w1_master_attempts",
+//            "/sys/class/thermal/thermal_zone0/temp"
+    };
+
+    //TODO 暂未发现使用的温度传感器和cpu核有关系 此为备用数据源
+    public static final String[] CPU_TEMPERATURE_SYSTEM_FILE_PATHS_SPARE = {
+            "/sys/devices/virtual/thermal/thermal_zone0/temp",
             "/sys/class/thermal/thermal_zone0/temp"
     };
 

@@ -18,22 +18,30 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
 
     private int getCpuTemperatureFromSystemFile() {
         List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CPU_TEMPERATURE_SYSTEM_FILE_PATHS);
+        if (content.size() == 0) {
+            content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CPU_TEMPERATURE_SYSTEM_FILE_PATHS_SPARE);
+        }
         System.out.println("content : " + content.toString());
         int temperature = 0;
         int count = 0;
         if (content.size() > 0) {
             for (String line : content) {
                 if (!line.equals("")) {
+                    System.out.println("line : " + line);
                     int temp = Integer.parseInt(line);
-                    //TODO 某些机型的配置文件读出来只需要除10 已修复 待回测
                     temp = Math.abs(temp);
                     if (temp >= 100 && temp < 1000) {
                         temp = (Math.round((float) temp / 10));
+                    } else if (temp >= 1000 && temp < 10000) {
+                        temp = (Math.round((float) temp / 100));
                     } else if (temp >= 1000) {
                         temp = (Math.round((float) temp / 1000));
                     }
+                    System.out.println("line temp : " + temp);
                     temperature += temp;
                     count++;
+                    System.out.println("now total : " + temp);
+                    System.out.println("now count : " + count);
                 }
             }
         }
@@ -65,7 +73,15 @@ public class CpuTemperatureMonitor implements IMonitor<Temp> {
         Log.v(TAG, "collect cpu temperature data: timestamp=" + timestamp);
         int cpuTemperature;
         if (Build.VERSION.SDK_INT >= 24) {
-            cpuTemperature = getCpuTemperatureFromHardwareProperties();
+            try {
+                cpuTemperature = getCpuTemperatureFromHardwareProperties();
+                //TODO java.lang.RuntimeException: Bad file descriptor
+            } catch (Exception e) {
+                e.printStackTrace();
+                cpuTemperature = getCpuTemperatureFromSystemFile();
+            }
+            if (cpuTemperature == -1)
+                cpuTemperature = getCpuTemperatureFromSystemFile();
         } else {
             cpuTemperature = getCpuTemperatureFromSystemFile();
         }

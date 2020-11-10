@@ -49,6 +49,8 @@ import com.github.sandin.miniperf.server.util.ArgumentParser;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 /**
@@ -169,24 +171,20 @@ public class MiniPerfServer implements SocketServer.Callback {
                     break;
                 case "cputemp":
                     final CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
-//                    TimerTask task = new TimerTask() {
-//                        @Override
-//                        public void run() {
-//                            Temp temp = null;
-//                            try {
-//                                temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
-//                            } catch (Exception e) {
-//                                e.printStackTrace();
-//                            }
-//                            System.out.println("Temp : " + temp);
-//                        }
-//                    };
-//                    Timer timer = new Timer();
-//                    timer.scheduleAtFixedRate(task, 0, 1500);
-                    while (true) {
-                        System.out.println(cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null));
-                        Thread.sleep(500);
-                    }
+                    TimerTask task = new TimerTask() {
+                        @Override
+                        public void run() {
+                            Temp temp = null;
+                            try {
+                                temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                            System.out.println("Temp : " + temp);
+                        }
+                    };
+                    Timer timer = new Timer();
+                    timer.scheduleAtFixedRate(task, 0, 1500);
                 case "gpu":
                     GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
                     GpuUsageMonitor gpuUsageMonitor = new GpuUsageMonitor();
