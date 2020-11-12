@@ -290,8 +290,8 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             if (pos + 2 >= line.length()) return false;
             line = line.substring(pos + 2);
             String[] tokens = apache_split(line);
-            current_app.utime = Long.parseLong(tokens[11]);
-            current_app.stime = Long.parseLong(tokens[12]);
+            current_app.utime = Math.max(Long.parseLong(tokens[11]), last_app.utime);
+            current_app.stime = Math.max(Long.parseLong(tokens[12]), last_app.stime);
             // System.out.println("[DEBUG] current: utime=" + current_app.utime + "; stime=" + current_app.stime);
             return true;
         }
@@ -382,13 +382,13 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             String[] tokens = apache_split(line);
             // System.out.println(tokens[0]);
             if (tokens.length >= 8 && tokens[0].equals("cpu")){
-                current.user = Long.parseLong(tokens[1]);
-                current.nice = Long.parseLong(tokens[2]);
-                current.system = Long.parseLong(tokens[3]);
-                current.idle = Long.parseLong(tokens[4]);
-                current.iowait = Long.parseLong(tokens[5]);
-                current.irq = Long.parseLong(tokens[6]);
-                current.softirq = Long.parseLong(tokens[7]);
+                current.user = Math.max(Long.parseLong(tokens[1]), last.user);
+                current.nice = Math.max(Long.parseLong(tokens[2]), last.nice);
+                current.system = Math.max(Long.parseLong(tokens[3]), last.system);
+                current.idle = Math.max(Long.parseLong(tokens[4]), last.idle);
+                current.iowait = Math.max(Long.parseLong(tokens[5]), last.iowait);
+                current.irq = Math.max(Long.parseLong(tokens[6]), last.irq);
+                current.softirq = Math.max(Long.parseLong(tokens[7]), last.softirq);
                 current.total = current.user
                         + current.nice
                         + current.system
