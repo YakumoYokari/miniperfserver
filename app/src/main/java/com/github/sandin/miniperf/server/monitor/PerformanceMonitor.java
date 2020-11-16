@@ -210,6 +210,22 @@ public class PerformanceMonitor {
     }
 
     private void setupMonitorsForDataTypes() {
+        // cpu
+        if (isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) || isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) || isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
+            final CpuMonitor cpuMonitor;
+            if (!isMonitorRegistered(CPU_MONITOR)) {
+                cpuMonitor = new CpuMonitor(mTargetApp.getPid());
+                registerMonitor(CPU_MONITOR, cpuMonitor);
+            } else { // has already registered and just update fields
+                cpuMonitor = getMonitor(CPU_MONITOR);
+            }
+            cpuMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.CPU_USAGE, ProfileReq.DataType.CORE_USAGE, ProfileReq.DataType.CORE_FREQUENCY));
+        } else if (!isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
+            if (isMonitorRegistered(CPU_MONITOR)) {
+                unregisterMonitor(CPU_MONITOR);
+            }
+        }
+
         // screenshot
         if (isDataTypeEnabled(ProfileReq.DataType.SCREEN_SHOT)) {
             if (!isMonitorRegistered(SCREENSHOT_MONITOR)) {
@@ -253,22 +269,7 @@ public class PerformanceMonitor {
             }
         }
 
-        // cpu
-        if (isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) || isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) || isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
-            final CpuMonitor cpuMonitor;
-            if (!isMonitorRegistered(CPU_MONITOR)) {
-                cpuMonitor = new CpuMonitor(mTargetApp.getPid());
-                registerMonitor(CPU_MONITOR, cpuMonitor);
-            } else { // has already registered and just update fields
-                cpuMonitor = getMonitor(CPU_MONITOR);
-            }
-            cpuMonitor.setInterestingFields(getSubDataTypes(ProfileReq.DataType.CPU_USAGE, ProfileReq.DataType.CORE_USAGE, ProfileReq.DataType.CORE_FREQUENCY));
-        } else if (!isDataTypeEnabled(ProfileReq.DataType.CPU_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_USAGE) && !isDataTypeEnabled(ProfileReq.DataType.CORE_FREQUENCY)) {
-            if (isMonitorRegistered(CPU_MONITOR)) {
-                unregisterMonitor(CPU_MONITOR);
-            }
-        }
-
+        //cpuTemp
         if (isDataTypeEnabled(ProfileReq.DataType.CPU_TEMPERATURE)) {
             if (!isMonitorRegistered(CPU_TEMPERATURE_MONITOR)) {
                 registerMonitor(CPU_TEMPERATURE_MONITOR, new CpuTemperatureMonitor());
