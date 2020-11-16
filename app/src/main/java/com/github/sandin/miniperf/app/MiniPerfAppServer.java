@@ -34,10 +34,11 @@ public class MiniPerfAppServer implements Runnable {
 
     @Override
     public void run() {
+        Log.i(TAG, "start MiniPerf app server");
         try {
             this.mServerSocket = new ServerSocket(PORT, BACKLOG);
             while (true) {
-                new Thread(new Server(this.mContext, this.mServerSocket.accept()));
+                new Thread(new Server(this.mContext, this.mServerSocket.accept())).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -61,10 +62,13 @@ public class MiniPerfAppServer implements Runnable {
 
         @Override
         public void run() {
+            Log.i(TAG, "start handle request message");
             while (true) {
                 try {
-                    byte[] request = readMessage();
-                    byte[] response = handleRequest(MiniPerfAppProtocol.parseFrom(request));
+                    MiniPerfAppProtocol request = MiniPerfAppProtocol.parseFrom(readMessage());
+                    Log.i(TAG, "handler request : " + request);
+                    byte[] response = handleRequest((request));
+                    Log.i(TAG, "response is : " + MiniPerfAppProtocol.parseFrom(response));
                     if (response != null)
                         sendMessage(response);
                 } catch (IOException e) {

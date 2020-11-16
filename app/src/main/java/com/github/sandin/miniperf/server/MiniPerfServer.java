@@ -49,8 +49,6 @@ import com.github.sandin.miniperf.server.util.ArgumentParser;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 
 /**
@@ -143,6 +141,13 @@ public class MiniPerfServer implements SocketServer.Callback {
         String command = arguments.getAsString("command", null);
         if (command != null) {
             switch (command) {
+                case "memory":
+                    System.out.println("start test memory");
+                    MemoryMonitor memoryMonitor = new MemoryMonitor(mContext);
+                    Memory memory = memoryMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                    String dumpMemory = MemoryMonitor.dumpMemory(memory);
+                    System.out.println(dumpMemory);
+                    break;
                 case "screenshot":
                     ScreenshotMonitor screenshotMonitor = new ScreenshotMonitor();
                     screenshotMonitor.takeScreenshot(System.out);
@@ -179,20 +184,11 @@ public class MiniPerfServer implements SocketServer.Callback {
                     break;
                 case "cputemp":
                     final CpuTemperatureMonitor cpuTemperatureMonitor = new CpuTemperatureMonitor();
-                    TimerTask task = new TimerTask() {
-                        @Override
-                        public void run() {
-                            Temp temp = null;
-                            try {
-                                temp = cpuTemperatureMonitor.collect(null, System.currentTimeMillis(), null);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                            System.out.println("Temp : " + temp);
-                        }
-                    };
-                    Timer timer = new Timer();
-                    timer.scheduleAtFixedRate(task, 0, 1500);
+                    while (true) {
+                        Temp temp = cpuTemperatureMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                        System.out.println("temp : " + temp);
+                        Thread.sleep(1000);
+                    }
                 case "gpu":
                     GpuFreqMonitor gpuFreqMonitor = new GpuFreqMonitor();
                     GpuUsageMonitor gpuUsageMonitor = new GpuUsageMonitor();
@@ -359,7 +355,7 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleGetMemoryUsageReq(GetMemoryUsageReq request) {
         if (mMemoryMonitor == null) {
-            mMemoryMonitor = new MemoryMonitor();
+            mMemoryMonitor = new MemoryMonitor(mContext);
         }
         try {
             Memory memory = mMemoryMonitor.collect(new TargetApp(null, request.getPid()), 0, null);

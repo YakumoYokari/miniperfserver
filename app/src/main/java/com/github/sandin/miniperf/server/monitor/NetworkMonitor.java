@@ -29,12 +29,13 @@ import java.util.Map;
  * 仅支持Api>= 23,且目前发现部分安卓6存在权限问题,且有些手机上数据刷新率过低
  * 2、getTrafficsFromTrafficStats 通过TrafficsStats获取
  * 3、getTrafficsFromSystemFile 通过解析 /proc/net/xt_qtaguid/stats 高版本安卓会移除
- * <p>
+ * return -1为不支持
  * return b/s
  */
 public class NetworkMonitor implements IMonitor<Network> {
 
     private static final String TAG = "NetworkMonitor";
+    private final String SERVICE_NAME = "netstats";
     private Context mContext;
     private long lastRxBytes = 0;
     private long lastTxBytes = 0;
@@ -60,16 +61,20 @@ public class NetworkMonitor implements IMonitor<Network> {
         return sb.toString();
     }
 
+    //return -1为不支持
     @SuppressLint("NewApi")
     public TrafficInfo getTrafficsFromNetworkStatsManager(int uid) throws RemoteException {
         NetworkStatsManager mNetworkStatsManager = (NetworkStatsManager) mContext.getSystemService(Context.NETWORK_STATS_SERVICE);
         System.out.println("get traffics info from statsManager");
-        Network.Builder networkBuilder = Network.newBuilder();
         String subId = AndroidProcessUtils.getSubscriberId(mContext);
         long totalRx = 0;
         long totalTx = 0;
         NetworkStats.Bucket summaryBucket = new NetworkStats.Bucket();
         int networkType = getNetworkType();
+        //Unsupported
+        if (networkType == -1) {
+            return new TrafficInfo(-1, -1);
+        }
         System.out.println("network type : " + networkType);
         Log.i(TAG, "network type : " + networkType);
         NetworkStats networkStats = mNetworkStatsManager
@@ -90,9 +95,20 @@ public class NetworkMonitor implements IMonitor<Network> {
         return new TrafficInfo(totalTx, totalRx);
     }
 
+
+    /**
+     * 获取网络类型
+     * 网络不可用时会返回null
+     *
+     * @see <a href="https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/ConnectivityService.java;l=1406;drc=aeab3f7d9fe6cfce81baf4e2e6b4696d210875f2">ConnectivityService</a>
+     */
     @SuppressLint("MissingPermission")
     private int getNetworkType() {
         ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm.getActiveNetworkInfo() == null) {
+            //无可用网络
+            return -1;
+        }
         return cm.getActiveNetworkInfo().getType();
     }
 
@@ -162,7 +178,7 @@ public class NetworkMonitor implements IMonitor<Network> {
             } else if (Build.VERSION.SDK_INT >= 23) {
                 try {
                     TrafficInfo trafficsFromNetworkStatsManager = getTrafficsFromNetworkStatsManager(uid);
-                    if (trafficsFromNetworkStatsManager.getUpload() != 0 && trafficsFromNetworkStatsManager.getDownload() != 0)
+                    if (trafficsFromNetworkStatsManager.getUpload() > 0 && trafficsFromNetworkStatsManager.getDownload() > 0)
                         mSupportMethod = "getTrafficsFromNetworkStatsManager";
                 } catch (RemoteException e) {
                     e.printStackTrace();

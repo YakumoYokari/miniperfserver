@@ -257,7 +257,7 @@ public class PerformanceMonitor {
         if (isDataTypeEnabled(ProfileReq.DataType.MEMORY) || isDataTypeEnabled(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)) {
             final MemoryMonitor memoryMonitor;
             if (!isMonitorRegistered(MEMORY_MONITOR)) {
-                memoryMonitor = new MemoryMonitor();
+                memoryMonitor = new MemoryMonitor(mContext);
                 registerMonitor(MEMORY_MONITOR, memoryMonitor);
             } else { // has already registered and just update fields
                 memoryMonitor = getMonitor(MEMORY_MONITOR);

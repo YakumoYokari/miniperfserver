@@ -3,10 +3,8 @@ package com.github.sandin.miniperf.server.monitor;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Debug;
-import android.os.Looper;
 import android.util.Log;
 
-import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MemoryDetail;
@@ -33,13 +31,16 @@ public class MemoryMonitor implements IMonitor<Memory> {
 
     private final ActivityManager mActivityManager;
 
+    private Context mContext;
+
     private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
 
-    public MemoryMonitor() {
-        Looper.prepare(); // TODO: java.lang.RuntimeException: Only one Looper may be created per thread
-        Context context = ActivityThread.systemMain().getSystemContext();
+    public MemoryMonitor(Context context) {
+        //Looper.prepare(); // TODO: java.lang.RuntimeException: Only one Looper may be created per thread
+        //Context context = ActivityThread.systemMain().getSystemContext();
         //mActivityManager = new ServiceManager().getActivityManager();
-        mActivityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+        mContext = context;
+        mActivityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
     }
 
     /**

@@ -82,7 +82,7 @@ public class SocketServerUnitTest {
 
     @Test
     public void getMemory() throws Exception {
-        int pid = 6958;
+        int pid = 7587;
 
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetMemoryUsageReq(
                 GetMemoryUsageReq.newBuilder().setPid(pid)).build();

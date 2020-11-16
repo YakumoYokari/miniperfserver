@@ -10,10 +10,13 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
 public class ViewService extends Service {
+
+    private static final String TAG = "MiniPerfApp";
 
 
     @Nullable
@@ -32,6 +35,7 @@ public class ViewService extends Service {
     }
 
     private void createNotificationBar() {
+        Log.i(TAG, "create notification bar");
         //target version  >= 26 需要添加channel
         Notification.Builder builder = new Notification.Builder(this);
         builder.setSmallIcon(R.mipmap.app_icon);
