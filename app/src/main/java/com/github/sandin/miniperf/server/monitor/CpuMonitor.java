@@ -154,7 +154,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         float usage;
         float[] usage_per_cpu;
         float app_usage;
-
+        
         float normalized_usage;
         float[] normalized_usage_per_cpu;
         float normalized_app_usage;
@@ -446,13 +446,6 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         }
 
         private boolean read() throws FileNotFoundException {
-            String pid_stat = "/proc/" + pid + "/stat";
-            List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(pid_stat);
-            if (!_read_app(str)) return false;
-            String stat = "/proc/stat";
-            // String stat = _read_file("/proc/stat");
-            // System.out.println(stat);
-            List<String> str1 = ReadSystemInfoUtils.readInfoFromSystemFile(stat);
             if (have_current_freq){
                 int offline = 0;
                 for(int i = 0; i < cores; ++i){
@@ -463,6 +456,15 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                     have_current_freq = false;
                 }
             }
+            
+            String pid_stat = "/proc/" + pid + "/stat";
+            List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(pid_stat);
+            if (!_read_app(str)) return false;
+            String stat = "/proc/stat";
+            // String stat = _read_file("/proc/stat");
+            // System.out.println(stat);
+            List<String> str1 = ReadSystemInfoUtils.readInfoFromSystemFile(stat);
+            
             try{
                 if (! _read_cpu(str1)) return false;
                 boolean[] processed = new boolean[cores];
@@ -520,20 +522,24 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             }
 
             // 1. calculate usage
-            if (current.total - last.total == 0){
-                usage = 0.0f;
+            if (current.idle >= last.idle &&  (current.idle - last.idle) / 8 < 0x7c){
+              if (current.total - last.total == 0){
+                  usage = 0.0f;
+              }
+              else {
+                  usage = (current.u2 - last.u2) * 100.0f / (current.total - last.total);
+              }
             }
-            else {
-                usage = (current.u2 - last.u2) * 100.0f / (current.total - last.total);
-            }
-
+            
             for (int i = 0; i < cores; ++i){
+              if (current_per_cpu[i].idle >= last_per_cpu[i].idle &&  (current_per_cpu[i].idle - last_per_cpu[i].idle) / 8 < 0x7c){
                 if (current_per_cpu[i].total - last_per_cpu[i].total == 0){
                     usage_per_cpu[i] = 0.0f;
                 } else {
                     usage_per_cpu[i] = (current_per_cpu[i].u2 - last_per_cpu[i].u2) * 100.0f / (current_per_cpu[i].total - last_per_cpu[i].total);
                     // System.out.println("current " + i + " u2=" + (current_per_cpu[i].u2 - last_per_cpu[i].u2) + " t=" + (current_per_cpu[i].total - last_per_cpu[i].total));
                 }
+              }
             }
 
             // System.out.println("[DEBUG] current: utime=" + current_app.utime + "; stime=" + current_app.stime);
@@ -545,12 +551,14 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 usage_per_cpu[i] = (current_per_cpu[i].u1 - last_per_cpu[i].u1) * 100.0f / (current_per_cpu[i].total - last_per_cpu[i].total);
             }
             */
-            if (current.total - last.total == 0){
-                app_usage = 0.0f;
-            } else {
-                app_usage = ((current_app.stime + current_app.utime) - (last_app.stime + last_app.utime)) * 100f / (current.total - last.total);
+            
+            if (current.idle >= last.idle &&  (current.idle - last.idle) / 8 < 0x7c){
+              if (current.total - last.total == 0){
+                  app_usage = 0.0f;
+              } else {
+                  app_usage = ((current_app.stime + current_app.utime) - (last_app.stime + last_app.utime)) * 100f / (current.total - last.total);
+              }
             }
-
             if (allow_normalization) {
                 float den = 0;
                 float num = 0;
