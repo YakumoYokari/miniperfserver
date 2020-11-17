@@ -422,16 +422,14 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 return -1;
             }
             int x = Integer.parseInt(tokens[0].substring(3));
-            
-            // 部分手机读出来的值不保证单调性, 导致计算时出现负数, 这里强行让它保持单调.
-            current_per_cpu[x].user = Math.max(Long.parseLong(tokens[1]), last_per_cpu[x].user);
-            current_per_cpu[x].nice = Math.max(Long.parseLong(tokens[2]), last_per_cpu[x].nice);
-            current_per_cpu[x].system = Math.max(Long.parseLong(tokens[3]), last_per_cpu[x].system);
-            current_per_cpu[x].idle = Math.max(Long.parseLong(tokens[4]), last_per_cpu[x].idle);
-            current_per_cpu[x].iowait = Math.max(Long.parseLong(tokens[5]), last_per_cpu[x].iowait);
-            current_per_cpu[x].irq = Math.max(Long.parseLong(tokens[6]), last_per_cpu[x].irq);
-            current_per_cpu[x].softirq = Math.max(Long.parseLong(tokens[7]), last_per_cpu[x].softirq);
-            
+
+            current_per_cpu[x].user = Long.parseLong(tokens[1]);
+            current_per_cpu[x].nice = Long.parseLong(tokens[2]);
+            current_per_cpu[x].system = Long.parseLong(tokens[3]);
+            current_per_cpu[x].idle = Long.parseLong(tokens[4]);
+            current_per_cpu[x].iowait = Long.parseLong(tokens[5]);
+            current_per_cpu[x].irq = Long.parseLong(tokens[6]);
+            current_per_cpu[x].softirq = Long.parseLong(tokens[7]);
             current_per_cpu[x].total = current_per_cpu[x].user
                     + current_per_cpu[x].nice
                     + current_per_cpu[x].system
@@ -448,7 +446,13 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         }
 
         private boolean read() throws FileNotFoundException {
-          
+            String pid_stat = "/proc/" + pid + "/stat";
+            List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(pid_stat);
+            if (!_read_app(str)) return false;
+            String stat = "/proc/stat";
+            // String stat = _read_file("/proc/stat");
+            // System.out.println(stat);
+            List<String> str1 = ReadSystemInfoUtils.readInfoFromSystemFile(stat);
             if (have_current_freq){
                 int offline = 0;
                 for(int i = 0; i < cores; ++i){
@@ -459,15 +463,6 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                     have_current_freq = false;
                 }
             }
-            
-            String pid_stat = "/proc/" + pid + "/stat";
-            List<String> str = ReadSystemInfoUtils.readInfoFromSystemFile(pid_stat);
-            if (!_read_app(str)) return false;
-            String stat = "/proc/stat";
-            // String stat = _read_file("/proc/stat");
-            // System.out.println(stat);
-            List<String> str1 = ReadSystemInfoUtils.readInfoFromSystemFile(stat);
-            
             try{
                 if (! _read_cpu(str1)) return false;
                 boolean[] processed = new boolean[cores];
