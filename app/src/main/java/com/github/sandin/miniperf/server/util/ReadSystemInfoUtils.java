@@ -29,12 +29,10 @@ public class ReadSystemInfoUtils {
     public static List<String> readInfoFromSystemFile(String[] systemFilePaths) {
         List<String> content = new LinkedList<>();
         for (String path : systemFilePaths) {
-//            System.out.println("now path is " + path);
             Log.i(TAG, "now read file path is " + path);
             File systemFile = new File(path);
             Log.i(TAG, "is file exist : " + systemFile.exists());
             if (systemFile.exists()) {
-//                System.out.println("start read system file : " + path);
                 Log.i(TAG, "start read system file : " + path);
                 BufferedReader reader = null;
                 try {

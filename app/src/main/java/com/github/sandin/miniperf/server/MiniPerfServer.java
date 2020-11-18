@@ -18,7 +18,6 @@ import com.github.sandin.miniperf.server.monitor.CpuTemperatureMonitor;
 import com.github.sandin.miniperf.server.monitor.GpuFreqMonitor;
 import com.github.sandin.miniperf.server.monitor.GpuUsageMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
-import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.monitor.ScreenshotMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
@@ -32,7 +31,6 @@ import com.github.sandin.miniperf.server.proto.GpuFreq;
 import com.github.sandin.miniperf.server.proto.GpuUsage;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
-import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProcessFoundNTF;
 import com.github.sandin.miniperf.server.proto.ProcessNotFoundNTF;
@@ -101,6 +99,8 @@ public class MiniPerfServer implements SocketServer.Callback {
         argumentParser.addArg("test", "test mode", false);
         argumentParser.addArg("app", "app mode", false);
         argumentParser.addArg("command", "command for test mode", true);
+        argumentParser.addArg("pkg", "package name", true);
+
         ArgumentParser.Arguments arguments = argumentParser.parse(args);
 
         boolean isApp = arguments.has("app");
@@ -133,42 +133,46 @@ public class MiniPerfServer implements SocketServer.Callback {
     }
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
-        String packageName = "com.xiaomi.shop";
-        packageName = "com.tencent.tmgp.jx3m";
+//        String packageName = arguments.getAsString("pkg", null);
+        String packageName = "com.quark.browser";
+        System.out.println("test package name is : " + packageName);
+        while (!AndroidProcessUtils.checkAppIsRunning(mContext, packageName)) {
+            System.out.println("wait for app start");
+            Thread.sleep(500);
+        }
         int pid = AndroidProcessUtils.getPid(mContext, packageName);
         int uid = AndroidProcessUtils.getUid(mContext, packageName);
-        TargetApp targetApp = new TargetApp(packageName, uid);
+        TargetApp targetApp = new TargetApp(packageName, pid);
         String command = arguments.getAsString("command", null);
         if (command != null) {
             switch (command) {
                 case "memory":
                     System.out.println("start test memory");
                     MemoryMonitor memoryMonitor = new MemoryMonitor(mContext);
-                    Memory memory = memoryMonitor.collect(targetApp, System.currentTimeMillis(), null);
-                    String dumpMemory = MemoryMonitor.dumpMemory(memory);
-                    System.out.println(dumpMemory);
-                    break;
+                    while (true) {
+                        Memory memory = memoryMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                        String dumpMemory = MemoryMonitor.dumpMemory(memory);
+                        System.out.println(dumpMemory);
+                        Thread.sleep(1000);
+                    }
                 case "screenshot":
                     ScreenshotMonitor screenshotMonitor = new ScreenshotMonitor();
                     screenshotMonitor.takeScreenshot(System.out);
                     break;
                 case "network":
                     //Tx : send ,Rx : recv
-                    NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
-                    Network last = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
-                    System.out.println(last.getUpload());
-                    System.out.println(last.getDownload());
-//                    Thread.sleep(1 * 1000);
-//                    Network now = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
-//                    System.out.println(now.getUpload());
-//                    System.out.println(now.getDownload());
-//                    Network fromSystemFile = networkMonitor.getTrafficsFromSystemFile(uid);
-//                    System.out.println(fromSystemFile.getDownload());
-//                    Network fromNetworkStats = networkMonitor.getTrafficsFromNetworkStatsManager(uid);
-//                    Network fromTrafficStats = networkMonitor.getTrafficsFromTrafficStats(uid);
-//                    System.out.println(fromSystemFile);
-//                    System.out.println(fromNetworkStats);
-//                    System.out.println(fromTrafficStats);
+                    List<String> result = ReadSystemInfoUtils.readInfoFromDumpsys("netstats", new String[]{"detail"});
+                    for (String line : result) {
+                        System.out.println(line);
+                    }
+//                    NetworkMonitor networkMonitor = new NetworkMonitor(mContext, packageName);
+//                    while (true) {
+//                        Network network = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+//                        System.out.println(network.getUpload());
+//                        System.out.println(network.getDownload());
+//                        Thread.sleep(1000);
+//                    }
+//                    networkMonitor.getTrafficsFromDumpsys(uid);
                     break;
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);
@@ -337,13 +341,15 @@ public class MiniPerfServer implements SocketServer.Callback {
                         ProcessFoundNTF.newBuilder()
                 ).build().toByteArray()
         );
-        targetApp.setPid(AndroidProcessUtils.getPid(mContext, packageName));
+        int pid = AndroidProcessUtils.getPid(mContext, packageName);
+        Log.d(TAG, "application pid is : " + pid);
+        targetApp.setPid(pid);
         PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
         session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
         if (session != null) {
             sessionId = session.getSessionId();
         } else {
-            errorCode = -1; // TODO: errorCode enum
+            errorCode = -2; // TODO: errorCode enum
         }
         return MiniPerfServerProtocol.newBuilder().setProfileRsp(
                 ProfileRsp.newBuilder()

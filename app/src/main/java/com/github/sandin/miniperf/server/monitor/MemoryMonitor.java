@@ -2,7 +2,6 @@ package com.github.sandin.miniperf.server.monitor;
 
 import android.app.ActivityManager;
 import android.content.Context;
-import android.os.Debug;
 import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -11,13 +10,10 @@ import com.github.sandin.miniperf.server.proto.MemoryDetail;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.VirtualMemory;
-import com.github.sandin.miniperf.server.util.ReflectionUtils;
+import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,103 +61,62 @@ public class MemoryMonitor implements IMonitor<Memory> {
         return sb.toString();
     }
 
-    private long getVssMemory(int pid) throws IOException {
-        Log.i(TAG, "start collect vss memory");
-        String vssSystemFilePath = "/proc/" + pid + "/status";
-        long vss = 0;
-        File file = new File(vssSystemFilePath);
-        if (file.exists()) {
-            BufferedReader reader = null;
-            try {
-                reader = new BufferedReader(new FileReader(file));
-                String line;
-                String vssStr = "";
-                while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("VmSize")) {
-                        for (int i = 0; i < line.length(); i++) {
-                            if (line.charAt(i) >= '0' && line.charAt(i) <= '9')
-                                vssStr += line.charAt(i);
-                        }
-                    }
-                }
-                if (!vssStr.equals("")) {
-                    vss = Integer.parseInt(vssStr);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } finally {
-                reader.close();
-            }
-        }
-        return vss;
+    //kb -> mb 四舍五入
+    private int kb2Mb(int kb) {
+        return Math.round((float) kb / 1024);
+    }
+
+    private int getLineDataByIndex(String line, int index) {
+        return Integer.parseInt(line.split("\\s+")[index]);
     }
 
     public Memory collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
-        Log.v(TAG, "collect memory data: " + targetApp + ", timestamp=" + timestamp);
         Memory.Builder memoryBuilder = Memory.newBuilder();
-        MemoryDetail.Builder memoryDetailBuilder = MemoryDetail.newBuilder();
-        Log.i(TAG, "collect process memory info");
-        //TODO can't get memory info
-        Debug.MemoryInfo[] processMemoryInfo = mActivityManager.getProcessMemoryInfo(new int[]{targetApp.getPid()});
-        Log.i(TAG, "process memory info size : " + processMemoryInfo.length);
-        if (processMemoryInfo != null && processMemoryInfo.length > 0) {
-            final Debug.MemoryInfo memoryInfo = processMemoryInfo[0];
-
-            // memory
-            memoryBuilder.setPss(memoryInfo.getTotalPss() / 1024);
-            final Integer swap = ReflectionUtils.invokeMethod(memoryInfo.getClass(), "getTotalSwappedOut",
-                    new Class<?>[]{}, memoryInfo, new Object[]{}, true);
-            memoryBuilder.setSwap(swap != null ? swap / 1024 : 0);
-            //memoryBuilder.setVirtualMemory(virtualMemory); // TODO: virtualMemory
-
-            // memory detail
-            Integer numOtherStats = ReflectionUtils.getFieldValue(memoryInfo.getClass(), "NUM_OTHER_STATS", memoryInfo, true);
-            int otherStatsNum = numOtherStats != null ? numOtherStats : 0;
-            int unknownPss = memoryInfo.otherPss;
-            Log.v(TAG, "memoryInfo.otherPss: " + memoryInfo.otherPss);
-            int gl = -1;
-            int gfx = -1;
-            if (otherStatsNum > 0) {
-                for (int i = 0; i < otherStatsNum; i++) {
-                    final String otherLabel = ReflectionUtils.invokeMethod(memoryInfo.getClass(), "getOtherLabel",
-                            new Class<?>[]{Integer.TYPE}, memoryInfo, new Object[]{i}, true);
-                    final Integer otherPss = ReflectionUtils.invokeMethod(memoryInfo.getClass(), "getOtherPss",
-                            new Class<?>[]{Integer.TYPE}, memoryInfo, new Object[]{i}, true);
-                    Log.v(TAG, i + "/" + otherStatsNum + " otherLabel=" + otherLabel + ", otherPss=" + otherPss);
-                    if (otherLabel != null && otherPss != null) {
-                        unknownPss -= otherPss;
-                        switch (otherLabel) {
-                            case "GL":
-                            case "GL mtrack":
-                                gl = otherPss;
-                                Log.v(TAG, "gl: " + gl);
-                                break;
-                            case "Gfx dev":
-                                gfx = otherPss;
-                                Log.v(TAG, "gfx: " + gfx);
-                                break;
-                        }
-                    }
-                }
-            }
-            if (gfx != -1) {
-                memoryDetailBuilder.setGfx(gfx);
-            }
-            if (gl != -1) {
-                memoryDetailBuilder.setGl(gl);
-            }
-            memoryDetailBuilder.setUnknown(unknownPss);
-            memoryDetailBuilder.setNativePss(memoryInfo.nativePss);
+        MemoryDetail.Builder detailBuilder = MemoryDetail.newBuilder();
+        int pid = targetApp.getPid();
+        List<String> meminfoResult = ReadSystemInfoUtils.readInfoFromDumpsys("meminfo", new String[]{String.valueOf(pid)});
+        int gl = 0, gfx = 0, unknow = 0, pss = 0, nativePss = 0;
+        for (String line : meminfoResult) {
+            //gfx
+            if (line.startsWith("Gfx dev"))
+                gfx = getLineDataByIndex(line, 2);
+            //gl
+            if (line.startsWith("GL mtrack"))
+                gl = getLineDataByIndex(line, 2);
+            //unknow
+            if (line.startsWith("Unknown"))
+                unknow = getLineDataByIndex(line, 1);
+            //pss
+            if (line.startsWith("TOTAL:"))
+                pss = getLineDataByIndex(line, 1);
+            //native
+            if (line.startsWith("Native Heap:"))
+                nativePss = getLineDataByIndex(line, 2);
         }
-        memoryBuilder.setMemoryDetail(memoryDetailBuilder);
-        //vss
-        long vss = getVssMemory(targetApp.getPid());
-        memoryBuilder.setVirtualMemory(vss);
+        memoryBuilder.setPss(kb2Mb(pss));
+        detailBuilder.setUnknown(kb2Mb(unknow)).setGfx(kb2Mb(gfx)).setGl(kb2Mb(gl)).setNativePss(kb2Mb(nativePss));
+        //vss & swap kb
+        List<String> vssAndSwapResult = ReadSystemInfoUtils.readInfoFromSystemFile("/proc/" + pid + "/status");
+        int vss = 0;
+        int swap = 0;
+        for (String line : vssAndSwapResult) {
+            //vss
+            if (line.startsWith("VmSize:")) {
+                vss = getLineDataByIndex(line, 1);
+            }
+            //swap
+            if (line.startsWith("VmSwap:")) {
+                swap = getLineDataByIndex(line, 1);
+            }
+        }
+        memoryBuilder.setVirtualMemory(kb2Mb(vss)).setSwap(kb2Mb(swap));
+        memoryBuilder.setMemoryDetail(detailBuilder);
         Memory memory = memoryBuilder.build();
+
         Log.v(TAG, dumpMemory(memory));
         if (data != null) {
             data.setMemory(memory);
-            data.setVirtualMemory(VirtualMemory.newBuilder().setVirtualMemory(Math.round((float) vss / 1024)).build());
+            data.setVirtualMemory(VirtualMemory.newBuilder().setVirtualMemory(kb2Mb(vss)).build());
         }
         return memory;
     }
