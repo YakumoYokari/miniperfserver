@@ -154,7 +154,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         float usage;
         float[] usage_per_cpu;
         float app_usage;
-
+        
         float normalized_usage;
         float[] normalized_usage_per_cpu;
         float normalized_app_usage;
@@ -290,8 +290,8 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             if (pos + 2 >= line.length()) return false;
             line = line.substring(pos + 2);
             String[] tokens = apache_split(line);
-            current_app.utime = Math.max(Long.parseLong(tokens[11]), last_app.utime);
-            current_app.stime = Math.max(Long.parseLong(tokens[12]), last_app.stime);
+            current_app.utime = Long.parseLong(tokens[11]);
+            current_app.stime = Long.parseLong(tokens[12]);
             // System.out.println("[DEBUG] current: utime=" + current_app.utime + "; stime=" + current_app.stime);
             return true;
         }
@@ -382,13 +382,13 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             String[] tokens = apache_split(line);
             // System.out.println(tokens[0]);
             if (tokens.length >= 8 && tokens[0].equals("cpu")){
-                current.user = Math.max(Long.parseLong(tokens[1]), last.user);
-                current.nice = Math.max(Long.parseLong(tokens[2]), last.nice);
-                current.system = Math.max(Long.parseLong(tokens[3]), last.system);
-                current.idle = Math.max(Long.parseLong(tokens[4]), last.idle);
-                current.iowait = Math.max(Long.parseLong(tokens[5]), last.iowait);
-                current.irq = Math.max(Long.parseLong(tokens[6]), last.irq);
-                current.softirq = Math.max(Long.parseLong(tokens[7]), last.softirq);
+                current.user = Long.parseLong(tokens[1]);
+                current.nice = Long.parseLong(tokens[2]);
+                current.system = Long.parseLong(tokens[3]);
+                current.idle = Long.parseLong(tokens[4]);
+                current.iowait = Long.parseLong(tokens[5]);
+                current.irq = Long.parseLong(tokens[6]);
+                current.softirq = Long.parseLong(tokens[7]);
                 current.total = current.user
                         + current.nice
                         + current.system
@@ -422,16 +422,14 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 return -1;
             }
             int x = Integer.parseInt(tokens[0].substring(3));
-            
-            // 部分手机读出来的值不保证单调性, 导致计算时出现负数, 这里强行让它保持单调.
-            current_per_cpu[x].user = Math.max(Long.parseLong(tokens[1]), last_per_cpu[x].user);
-            current_per_cpu[x].nice = Math.max(Long.parseLong(tokens[2]), last_per_cpu[x].nice);
-            current_per_cpu[x].system = Math.max(Long.parseLong(tokens[3]), last_per_cpu[x].system);
-            current_per_cpu[x].idle = Math.max(Long.parseLong(tokens[4]), last_per_cpu[x].idle);
-            current_per_cpu[x].iowait = Math.max(Long.parseLong(tokens[5]), last_per_cpu[x].iowait);
-            current_per_cpu[x].irq = Math.max(Long.parseLong(tokens[6]), last_per_cpu[x].irq);
-            current_per_cpu[x].softirq = Math.max(Long.parseLong(tokens[7]), last_per_cpu[x].softirq);
-            
+
+            current_per_cpu[x].user = Long.parseLong(tokens[1]);
+            current_per_cpu[x].nice = Long.parseLong(tokens[2]);
+            current_per_cpu[x].system = Long.parseLong(tokens[3]);
+            current_per_cpu[x].idle = Long.parseLong(tokens[4]);
+            current_per_cpu[x].iowait = Long.parseLong(tokens[5]);
+            current_per_cpu[x].irq = Long.parseLong(tokens[6]);
+            current_per_cpu[x].softirq = Long.parseLong(tokens[7]);
             current_per_cpu[x].total = current_per_cpu[x].user
                     + current_per_cpu[x].nice
                     + current_per_cpu[x].system
@@ -448,7 +446,6 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         }
 
         private boolean read() throws FileNotFoundException {
-          
             if (have_current_freq){
                 int offline = 0;
                 for(int i = 0; i < cores; ++i){
@@ -525,20 +522,24 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             }
 
             // 1. calculate usage
-            if (current.total - last.total == 0){
-                usage = 0.0f;
+            if (current.idle >= last.idle &&  (current.idle - last.idle) / 8 < 0x7c){
+              if (current.total - last.total == 0){
+                  usage = 0.0f;
+              }
+              else {
+                  usage = (current.u2 - last.u2) * 100.0f / (current.total - last.total);
+              }
             }
-            else {
-                usage = (current.u2 - last.u2) * 100.0f / (current.total - last.total);
-            }
-
+            
             for (int i = 0; i < cores; ++i){
+              if (current_per_cpu[i].idle >= last_per_cpu[i].idle &&  (current_per_cpu[i].idle - last_per_cpu[i].idle) / 8 < 0x7c){
                 if (current_per_cpu[i].total - last_per_cpu[i].total == 0){
                     usage_per_cpu[i] = 0.0f;
                 } else {
                     usage_per_cpu[i] = (current_per_cpu[i].u2 - last_per_cpu[i].u2) * 100.0f / (current_per_cpu[i].total - last_per_cpu[i].total);
                     // System.out.println("current " + i + " u2=" + (current_per_cpu[i].u2 - last_per_cpu[i].u2) + " t=" + (current_per_cpu[i].total - last_per_cpu[i].total));
                 }
+              }
             }
 
             // System.out.println("[DEBUG] current: utime=" + current_app.utime + "; stime=" + current_app.stime);
@@ -550,12 +551,14 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
                 usage_per_cpu[i] = (current_per_cpu[i].u1 - last_per_cpu[i].u1) * 100.0f / (current_per_cpu[i].total - last_per_cpu[i].total);
             }
             */
-            if (current.total - last.total == 0){
-                app_usage = 0.0f;
-            } else {
-                app_usage = ((current_app.stime + current_app.utime) - (last_app.stime + last_app.utime)) * 100f / (current.total - last.total);
+            
+            if (current.idle >= last.idle &&  (current.idle - last.idle) / 8 < 0x7c){
+              if (current.total - last.total == 0){
+                  app_usage = 0.0f;
+              } else {
+                  app_usage = ((current_app.stime + current_app.utime) - (last_app.stime + last_app.utime)) * 100f / (current.total - last.total);
+              }
             }
-
             if (allow_normalization) {
                 float den = 0;
                 float num = 0;
