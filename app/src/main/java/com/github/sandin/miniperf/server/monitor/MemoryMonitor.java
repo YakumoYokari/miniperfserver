@@ -16,6 +16,8 @@ import java.util.Map;
 
 /**
  * Memory Monitor
+ * Memory mb
+ * Memory kb
  *
  * @see Memory
  * <a href="https://cs.android.com/android/platform/superproject/+/master:frameworks/base/core/java/android/app/ActivityThread.java;l=2739?q=ActivityThread.jav&ss=android">ActivityThread</a>
@@ -81,7 +83,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
                 nativePss = getLineDataByIndex(line, 2);
         }
         memoryBuilder.setPss(kb2Mb(pss));
-        detailBuilder.setUnknown(kb2Mb(unknow)).setGfx(kb2Mb(gfx)).setGl(kb2Mb(gl)).setNativePss(kb2Mb(nativePss));
+        detailBuilder.setUnknown(unknow).setGfx(gfx).setGl(gl).setNativePss(nativePss);
         //vss & swap kb
         List<String> vssAndSwapResult = ReadSystemInfoUtils.readInfoFromSystemFile("/proc/" + pid + "/status");
         int vss = 0;
