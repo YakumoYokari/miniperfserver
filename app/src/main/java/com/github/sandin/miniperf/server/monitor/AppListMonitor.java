@@ -9,8 +9,9 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ServiceInfo;
+import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.Log;
@@ -22,6 +23,7 @@ import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.google.protobuf.ByteString;
 
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -90,30 +92,33 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
             appInfoBuilder.setLabel(applicationInfo.loadLabel(mContext.getPackageManager()).toString());
 
             //icon
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            Drawable applicationIcon = mContext.getPackageManager().getApplicationIcon(applicationInfo);
-            Bitmap bitmap = null;
-            getIcon:
-            {
-                if (applicationIcon instanceof BitmapDrawable) {
-                    final BitmapDrawable bitmapDrawable = (BitmapDrawable) applicationIcon;
-                    if (bitmapDrawable.getBitmap() != null) {
-                        bitmap = bitmapDrawable.getBitmap();
-                        break getIcon;
-                    }
-                }
-                if (applicationIcon.getIntrinsicWidth() > 0 && applicationIcon.getIntrinsicHeight() > 0) {
-                    bitmap = Bitmap.createBitmap(applicationIcon.getIntrinsicWidth(), applicationIcon.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-                } else {
-                    bitmap = Bitmap.createBitmap(36, 36, Bitmap.Config.ARGB_8888);
-                }
-                final Canvas canvas = new Canvas(bitmap);
-                applicationIcon.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-                applicationIcon.draw(canvas);
+            int icon = applicationInfo.icon;
+            AssetManager mAssetManager = null;
+            String sourceDir = applicationInfo.sourceDir;
+            System.out.println("source dir : " + sourceDir);
+            //assetManager.addAssetpath
+            try {
+                AssetManager assetManager = AssetManager.class.newInstance();
+                Method addAssetPath = AssetManager.class.newInstance().getClass().getMethod("addAssetPath", String.class);
+                addAssetPath.invoke(assetManager, sourceDir);
+                mAssetManager = assetManager;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
-            //格式转换
-            appInfoBuilder.setIcon(ByteString.copyFrom(byteArrayOutputStream.toByteArray()));
+            Resources resources = mContext.getResources();
+            Drawable drawable = new Resources(mAssetManager, resources.getDisplayMetrics(), resources.getConfiguration()).getDrawable(icon);
+            System.out.println(drawable.getMinimumHeight() + " " + drawable.getMinimumWidth());
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            if (drawable instanceof BitmapDrawable) {
+                BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+                Bitmap bitmap;
+                if (bitmapDrawable.getBitmap() != null) {
+                    bitmap = bitmapDrawable.getBitmap();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
+                    appInfoBuilder.setIcon(ByteString.copyFrom(byteArrayOutputStream.toByteArray()));
+                }
+            }
+
 
             //debuggable
             if ((applicationInfo.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
@@ -162,4 +167,5 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
         }
         return appInfoList;
     }
+
 }

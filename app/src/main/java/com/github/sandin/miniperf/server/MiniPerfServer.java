@@ -11,7 +11,6 @@ import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.app.BuildConfig;
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.miniperf.server.bean.TrafficInfo;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
@@ -33,6 +32,7 @@ import com.github.sandin.miniperf.server.proto.GpuFreq;
 import com.github.sandin.miniperf.server.proto.GpuUsage;
 import com.github.sandin.miniperf.server.proto.Memory;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperf.server.proto.Network;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProcessFoundNTF;
 import com.github.sandin.miniperf.server.proto.ProcessNotFoundNTF;
@@ -136,12 +136,12 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
 //        String packageName = arguments.getAsString("pkg", null);
-        String packageName = "com.xiaomi.market";
+        String packageName = "com.xiaomi.shop";
         System.out.println("test package name is : " + packageName);
-        while (!AndroidProcessUtils.checkAppIsRunning(mContext, packageName)) {
-            System.out.println("wait for app start");
-            Thread.sleep(500);
-        }
+//        while (!AndroidProcessUtils.checkAppIsRunning(mContext, packageName)) {
+//            System.out.println("wait for app start");
+//            Thread.sleep(500);
+//        }
         int pid = AndroidProcessUtils.getPid(mContext, packageName);
         int uid = AndroidProcessUtils.getUid(mContext, packageName);
         TargetApp targetApp = new TargetApp(packageName, pid);
@@ -162,16 +162,14 @@ public class MiniPerfServer implements SocketServer.Callback {
                     screenshotMonitor.takeScreenshot(System.out);
                     break;
                 case "network":
+                    System.out.println("collect network app uid : " + uid);
                     //Tx : send ,Rx : recv
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
                     while (true) {
-//                        Network network = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
-//                        System.out.println(network.getUpload());
-//                        System.out.println(network.getDownload());
-                        TrafficInfo traffics = networkMonitor.getTrafficsFromDumpsys(uid);
-                        System.out.println("rx : " + traffics.getDownload());
-                        System.out.println("tx : " + traffics.getUpload());
-                        Thread.sleep(500);
+                        Network network = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                        System.out.println(network.getUpload());
+                        System.out.println(network.getDownload());
+                        Thread.sleep(1000);
                     }
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);
