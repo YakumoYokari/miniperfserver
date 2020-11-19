@@ -25,10 +25,12 @@
         </activity>
 
         <service
-            android:name=".ViewService"
+            android:name="com.github.sandin.miniperf.app.ViewService"
             android:enabled="true"
             android:exported="true" />
-
+        <meta-data
+            android:name="android.support.VERSION"
+            android:value="25.4.0" />
     </application>
 
 

@@ -21,7 +21,7 @@ public class MainActivity extends Activity {
         Log.i(TAG, "MiniPerf app start!");
         this.startService(new Intent(this, ViewService.class));
         requestBackgroundResident();
-        gotoAppDetailIntent();
+        finish();
     }
 
     /**
@@ -29,25 +29,10 @@ public class MainActivity extends Activity {
      */
     private void requestBackgroundResident() {
         Log.i(TAG, "request background resident");
-        try {
-            if (Build.VERSION.SDK_INT >= 23 && !((PowerManager) getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) {
-                Intent intent = new Intent("android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS");
-                intent.setData(Uri.parse("package:" + getPackageName()));
-                startActivity(intent);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (Build.VERSION.SDK_INT >= 23 && !((PowerManager) getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(getPackageName())) {
+            Intent intent = new Intent("android.settings.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS");
+            intent.setData(Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
         }
     }
-
-    /**
-     * 跳转到应用详情界面
-     */
-    public void gotoAppDetailIntent() {
-        Intent intent = new Intent();
-        intent.setAction(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-        intent.setData(Uri.parse("package:" + getPackageName()));
-        startActivity(intent);
-    }
-
 }
