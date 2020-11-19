@@ -92,31 +92,32 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
             appInfoBuilder.setLabel(applicationInfo.loadLabel(mContext.getPackageManager()).toString());
 
             //icon
-            int icon = applicationInfo.icon;
-            AssetManager mAssetManager = null;
+            int iconId = applicationInfo.icon;
+            AssetManager assetManager = null;
             String sourceDir = applicationInfo.sourceDir;
-            System.out.println("source dir : " + sourceDir);
             //assetManager.addAssetpath
             try {
-                AssetManager assetManager = AssetManager.class.newInstance();
+                assetManager = AssetManager.class.newInstance();
                 Method addAssetPath = AssetManager.class.newInstance().getClass().getMethod("addAssetPath", String.class);
                 addAssetPath.invoke(assetManager, sourceDir);
-                mAssetManager = assetManager;
             } catch (Exception e) {
                 e.printStackTrace();
             }
             Resources resources = mContext.getResources();
-            Drawable drawable = new Resources(mAssetManager, resources.getDisplayMetrics(), resources.getConfiguration()).getDrawable(icon);
-            System.out.println(drawable.getMinimumHeight() + " " + drawable.getMinimumWidth());
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            if (drawable instanceof BitmapDrawable) {
-                BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
-                Bitmap bitmap;
-                if (bitmapDrawable.getBitmap() != null) {
-                    bitmap = bitmapDrawable.getBitmap();
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
-                    appInfoBuilder.setIcon(ByteString.copyFrom(byteArrayOutputStream.toByteArray()));
+            try {
+                Drawable drawable = new Resources(assetManager, resources.getDisplayMetrics(), resources.getConfiguration()).getDrawable(iconId);
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                if (drawable instanceof BitmapDrawable) {
+                    BitmapDrawable bitmapDrawable = (BitmapDrawable) drawable;
+                    Bitmap bitmap;
+                    if (bitmapDrawable.getBitmap() != null) {
+                        bitmap = bitmapDrawable.getBitmap();
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream);
+                        appInfoBuilder.setIcon(ByteString.copyFrom(byteArrayOutputStream.toByteArray()));
+                    }
                 }
+            } catch (Resources.NotFoundException e) {
+                appInfoBuilder.setIcon(ByteString.EMPTY);
             }
 
 

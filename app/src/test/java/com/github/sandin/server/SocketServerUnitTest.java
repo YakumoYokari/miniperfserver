@@ -143,7 +143,7 @@ public class SocketServerUnitTest {
         System.out.println("profile app : " + app.toString());
         MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder()
                 .setProfileReq(ProfileReq.newBuilder().setProfileApp(app)
-                                .addDataTypes(ProfileReq.DataType.MEMORY)
+//                        .addDataTypes(ProfileReq.DataType.MEMORY)
 //                        .addDataTypes(ProfileReq.DataType.CPU_USAGE)
 //                        .addDataTypes(ProfileReq.DataType.CORE_FREQUENCY)
 //                        .addDataTypes(ProfileReq.DataType.GPU_USAGE)

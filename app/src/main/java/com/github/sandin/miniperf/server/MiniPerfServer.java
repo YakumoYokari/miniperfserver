@@ -178,7 +178,6 @@ public class MiniPerfServer implements SocketServer.Callback {
                         System.out.println("version: " + app.getVersion());
                         System.out.println("uid: " + app.getPid());
                         System.out.println("system app: " + app.getIsSystemApp());
-                        System.out.println("");
                     }
                     break;
                 case "cputemp":
