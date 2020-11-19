@@ -17,16 +17,6 @@ public final class ServiceManager {
 
     private static final Class<?> CLASS;
 
-    private final Method getServiceMethod;
-
-    private WindowManager windowManager;
-    private DisplayManager displayManager;
-    private InputManager inputManager;
-    private PowerManager powerManager;
-    private StatusBarManager statusBarManager;
-    private ClipboardManager clipboardManager;
-    private ActivityManager activityManager;
-
     static {
         try {
             CLASS = Class.forName("android.os.ServiceManager");
@@ -35,19 +25,19 @@ public final class ServiceManager {
         }
     }
 
+    private final Method getServiceMethod;
+    private WindowManager windowManager;
+    private DisplayManager displayManager;
+    private InputManager inputManager;
+    private PowerManager powerManager;
+    private StatusBarManager statusBarManager;
+    private ClipboardManager clipboardManager;
+    private ActivityManager activityManager;
+    private NetworkStatusManager networkStatusManager;
+
     public ServiceManager() {
         try {
             getServiceMethod = CLASS.getDeclaredMethod("getService", String.class);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
-    }
-
-    private IInterface getService(String service, String type) {
-        try {
-            IBinder binder = (IBinder) getServiceMethod.invoke(null, service);
-            Method asInterfaceMethod = Class.forName(type + "$Stub").getMethod("asInterface", IBinder.class);
-            return (IInterface) asInterfaceMethod.invoke(null, binder);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -72,6 +62,16 @@ public final class ServiceManager {
     public static IBinder checkService(String name) {
         try {
             return (IBinder) CLASS.getMethod("checkService", String.class).invoke(null, name);
+        } catch (Exception e) {
+            throw new AssertionError(e);
+        }
+    }
+
+    private IInterface getService(String service, String type) {
+        try {
+            IBinder binder = (IBinder) getServiceMethod.invoke(null, service);
+            Method asInterfaceMethod = Class.forName(type + "$Stub").getMethod("asInterface", IBinder.class);
+            return (IInterface) asInterfaceMethod.invoke(null, binder);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -127,5 +127,12 @@ public final class ServiceManager {
         }
 
         return activityManager;
+    }
+
+    public NetworkStatusManager getNetworkStatusManager() {
+        if (networkStatusManager == null) {
+            networkStatusManager = new NetworkStatusManager(getService("netstats", "android.net.INetworkStatsService"));
+        }
+        return networkStatusManager;
     }
 }

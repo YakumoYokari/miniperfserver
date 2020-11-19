@@ -162,13 +162,11 @@ public class MiniPerfServer implements SocketServer.Callback {
                     screenshotMonitor.takeScreenshot(System.out);
                     break;
                 case "network":
-                    System.out.println("collect network app uid : " + uid);
-                    //Tx : send ,Rx : recv
                     NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
                     while (true) {
-                        Network network = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
-                        System.out.println(network.getUpload());
-                        System.out.println(network.getDownload());
+                        Network collect = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
+                        System.out.println("download : " + collect.getDownload());
+                        System.out.println("upload : " + collect.getUpload());
                         Thread.sleep(1000);
                     }
                 case "appinfo":

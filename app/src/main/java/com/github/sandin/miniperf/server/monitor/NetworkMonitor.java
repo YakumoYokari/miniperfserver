@@ -3,6 +3,8 @@ package com.github.sandin.miniperf.server.monitor;
 import android.content.Context;
 import android.util.Log;
 
+import com.genymobile.scrcpy.wrappers.NetworkStatusManager;
+import com.genymobile.scrcpy.wrappers.ServiceManager;
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.bean.TrafficInfo;
 import com.github.sandin.miniperf.server.data.DataSource;
@@ -50,14 +52,14 @@ public class NetworkMonitor implements IMonitor<Network> {
     /**
      * dump traffic info
      *
-     * @param network
+     * @param trafficInfo
      * @return string of trafficInfo
      */
-    public static String dumpTraffics(Network network) {
+    public static String dumpTraffics(TrafficInfo trafficInfo) {
         StringBuilder sb = new StringBuilder();
         sb.append("[Traffics");
-        sb.append(", download=").append(network.getDownload());
-        sb.append(", upload=").append(network.getUpload());
+        sb.append(", download=").append(trafficInfo.getDownload());
+        sb.append(", upload=").append(trafficInfo.getUpload());
         sb.append("]");
         return sb.toString();
     }
@@ -98,6 +100,15 @@ public class NetworkMonitor implements IMonitor<Network> {
             }
         }
         System.out.println("collect success : rx " + rx + " tx : " + tx);
+        return new TrafficInfo(tx, rx);
+    }
+
+    public TrafficInfo getTrafficsFromNetstats(int uid) {
+        final int TYPE_RX_BYTES = 0;
+        final int TYPE_TX_BYTES = 2;
+        NetworkStatusManager networkStatusManager = new ServiceManager().getNetworkStatusManager();
+        long rx = networkStatusManager.getUidStats(uid, TYPE_RX_BYTES);
+        long tx = networkStatusManager.getUidStats(uid, TYPE_TX_BYTES);
         return new TrafficInfo(tx, rx);
     }
 
@@ -150,13 +161,7 @@ public class NetworkMonitor implements IMonitor<Network> {
     public Network collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
         int uid = AndroidProcessUtils.getUid(mContext, targetApp.getPackageName());
         System.out.println("collect application uid : " + uid);
-        System.out.println("support read system file : " + supportReadSystemFile);
-        TrafficInfo traffics;
-        if (supportReadSystemFile) {
-            traffics = getTrafficsFromSystemFile(uid);
-        } else {
-            traffics = getTrafficsFromDumpsys(uid);
-        }
+        TrafficInfo traffics = getTrafficsFromNetstats(uid);
         Network.Builder networkBuilder = Network.newBuilder();
         if (traffics != null) {
             //first collect
