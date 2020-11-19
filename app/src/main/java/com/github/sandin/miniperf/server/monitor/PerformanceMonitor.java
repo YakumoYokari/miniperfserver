@@ -257,7 +257,7 @@ public class PerformanceMonitor {
         if (isDataTypeEnabled(ProfileReq.DataType.MEMORY) || isDataTypeEnabled(ProfileReq.DataType.ANDROID_MEMORY_DETAIL)) {
             final MemoryMonitor memoryMonitor;
             if (!isMonitorRegistered(MEMORY_MONITOR)) {
-                memoryMonitor = new MemoryMonitor(mContext);
+                memoryMonitor = new MemoryMonitor();
                 registerMonitor(MEMORY_MONITOR, memoryMonitor);
             } else { // has already registered and just update fields
                 memoryMonitor = getMonitor(MEMORY_MONITOR);
@@ -348,14 +348,14 @@ public class PerformanceMonitor {
     private ProfileNtf collectData(long timestamp) {
         ProfileNtf.Builder data = ProfileNtf.newBuilder();
         data.setTimestamp(timestamp);
-        try {
-            for (Map.Entry<String, IMonitor<?>> entry : mMonitors.entrySet()) {
-                IMonitor<?> monitor = entry.getValue();
+        for (Map.Entry<String, IMonitor<?>> entry : mMonitors.entrySet()) {
+            IMonitor<?> monitor = entry.getValue();
+            try {
                 monitor.collect(mTargetApp, timestamp, data);
-                Log.v(TAG, "collect data: " + data.build().toString());
+            } catch (Throwable e) {
+                e.printStackTrace();
             }
-        } catch (Throwable e) {
-            e.printStackTrace();
+            Log.v(TAG, "collect data: " + data.build().toString());
         }
         return data.build();
     }
@@ -405,7 +405,7 @@ public class PerformanceMonitor {
             }
             Log.i(TAG, "application is close !");
             //after app close , close server and clear monitors
-            Log.i(TAG,"stop performance monitor");
+            Log.i(TAG, "stop performance monitor");
             notifySendCloseNtf(AppClosedNTF.newBuilder().build());
             stop();
         }

@@ -1,5 +1,7 @@
 package com.github.sandin.miniperf.server.session;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -67,14 +69,16 @@ public final class Session implements PerformanceMonitor.Callback {
      */
     @Override
     public void onUpdate(ProfileNtf data) {
-//        if (mConnection.isConnected()) { // TODO: Bug!!
-        MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProfileNtf(data).build();
-        mConnection.sendMessage(response.toByteArray());
-//        } else {
-//            Log.w("MiniPerfServer", "disconnected, can not send data to client");
-//            stop();
-        // TODO: disconnect
-//        }
+        // TODO: Bug!!
+        if (mConnection.isConnected()) {
+            MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProfileNtf(data).build();
+            mConnection.sendMessage(response.toByteArray());
+        } else {
+            Log.w("MiniPerfServer", "disconnected, can not send data to client");
+            stop();
+            //disconnect
+
+        }
     }
 
     @Override

@@ -1,7 +1,5 @@
 package com.github.sandin.miniperf.server.monitor;
 
-import android.app.ActivityManager;
-import android.content.Context;
 import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -25,19 +23,8 @@ import java.util.Map;
 public class MemoryMonitor implements IMonitor<Memory> {
     private static final String TAG = "MemoryMonitor";
 
-    private final ActivityManager mActivityManager;
-
-    private Context mContext;
-
     private Map<ProfileReq.DataType, Boolean> mDataTypes = new HashMap<>();
 
-    public MemoryMonitor(Context context) {
-        //Looper.prepare(); // TODO: java.lang.RuntimeException: Only one Looper may be created per thread
-        //Context context = ActivityThread.systemMain().getSystemContext();
-        //mActivityManager = new ServiceManager().getActivityManager();
-        mContext = context;
-        mActivityManager = (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
-    }
 
     /**
      * dump memoryInfo
@@ -74,7 +61,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
         Memory.Builder memoryBuilder = Memory.newBuilder();
         MemoryDetail.Builder detailBuilder = MemoryDetail.newBuilder();
         int pid = targetApp.getPid();
-        List<String> meminfoResult = ReadSystemInfoUtils.readInfoFromDumpsys("meminfo", new String[]{String.valueOf(pid)});
+        List<String> meminfoResult = ReadSystemInfoUtils.readInfoFromDumpsys("meminfo", new String[]{String.valueOf(pid), "--local"});
         int gl = 0, gfx = 0, unknow = 0, pss = 0, nativePss = 0;
         for (String line : meminfoResult) {
             //gfx

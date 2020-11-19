@@ -1,13 +1,6 @@
 package com.github.sandin.miniperf.server.monitor;
 
-import android.annotation.SuppressLint;
-import android.app.usage.NetworkStats;
-import android.app.usage.NetworkStatsManager;
 import android.content.Context;
-import android.net.ConnectivityManager;
-import android.net.TrafficStats;
-import android.os.Build;
-import android.os.RemoteException;
 import android.util.Log;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
@@ -19,6 +12,8 @@ import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,14 +31,20 @@ public class NetworkMonitor implements IMonitor<Network> {
 
     private static final String TAG = "NetworkMonitor";
     private final String SERVICE_NAME = "netstats";
-    private Context mContext;
     private long lastRxBytes = 0;
     private long lastTxBytes = 0;
-    private String mSupportMethod;
+    private Context mContext;
+    private boolean supportReadSystemFile;
 
 
     public NetworkMonitor(Context context) {
         mContext = context;
+        File systemFile = new File(DataSource.NETWORK_SYSTEM_FILE_PATHS);
+        supportReadSystemFile = systemFile.exists();
+        if (supportReadSystemFile) {
+            if (ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS).size() <= 0)
+                supportReadSystemFile = !supportReadSystemFile;
+        }
     }
 
     /**
@@ -61,65 +62,43 @@ public class NetworkMonitor implements IMonitor<Network> {
         return sb.toString();
     }
 
-    //return -1为不支持
-    @SuppressLint("NewApi")
-    public TrafficInfo getTrafficsFromNetworkStatsManager(int uid) throws RemoteException {
-        NetworkStatsManager mNetworkStatsManager = (NetworkStatsManager) mContext.getSystemService(Context.NETWORK_STATS_SERVICE);
-        System.out.println("get traffics info from statsManager");
-        String subId = AndroidProcessUtils.getSubscriberId(mContext);
-        long totalRx = 0;
-        long totalTx = 0;
-        NetworkStats.Bucket summaryBucket = new NetworkStats.Bucket();
-        int networkType = getNetworkType();
-        //Unsupported
-        if (networkType == -1) {
-            return new TrafficInfo(-1, -1);
+
+    public TrafficInfo getTrafficsFromDumpsys(int uid) {
+        System.out.println("start get traffics from dumpsys");
+        List<String> result = ReadSystemInfoUtils.readInfoFromDumpsys(SERVICE_NAME, new String[]{"--uid"});
+        int uidStatsIndex = 0;
+        for (String line : result) {
+            if (line.startsWith("UID stats"))
+                break;
+            uidStatsIndex++;
         }
-        System.out.println("network type : " + networkType);
-        Log.i(TAG, "network type : " + networkType);
-        NetworkStats networkStats = mNetworkStatsManager
-                .querySummary(networkType, subId, System.currentTimeMillis() - 24 * 60 * 60 * 1000, System.currentTimeMillis());
-        System.out.println(uid);
-        do {
-            networkStats.getNextBucket(summaryBucket);
-            int summaryUid = summaryBucket.getUid();
-            Log.i(TAG, "summaryUid : " + summaryUid);
-            if (uid == summaryUid) {
-                long summaryRx = summaryBucket.getRxBytes();
-                long summaryTx = summaryBucket.getTxBytes();
-                totalRx += summaryRx;
-                totalTx += summaryTx;
+        result = result.subList(uidStatsIndex, result.size());
+        //collect index
+        List<Integer> indexs = new ArrayList<>();
+        for (int i = uidStatsIndex; i < result.size(); i++) {
+            String line = result.get(i);
+            if (line.startsWith("ident")) {
+                if (line.contains("uid=" + uid)) {
+                    indexs.add(i);
+                }
             }
-        } while (networkStats.hasNextBucket());
-        System.out.println("summaryRx : " + totalRx + " summaryTx : " + totalTx);
-        return new TrafficInfo(totalTx, totalRx);
-    }
-
-
-    /**
-     * 获取网络类型
-     * 网络不可用时会返回null
-     *
-     * @see <a href="https://cs.android.com/android/platform/superproject/+/master:frameworks/base/services/core/java/com/android/server/ConnectivityService.java;l=1406;drc=aeab3f7d9fe6cfce81baf4e2e6b4696d210875f2">ConnectivityService</a>
-     */
-    @SuppressLint("MissingPermission")
-    private int getNetworkType() {
-        ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm.getActiveNetworkInfo() == null) {
-            //无可用网络
-            return -1;
         }
-        return cm.getActiveNetworkInfo().getType();
-    }
-
-
-    public TrafficInfo getTrafficsFromTrafficStats(int uid) {
-        System.out.println("get traffics info from TrafficStats");
-        Network.Builder network = Network.newBuilder();
-        long download = TrafficStats.getUidRxBytes(uid);
-        long upload = TrafficStats.getUidTxBytes(uid);
-        //-1为不支持
-        return new TrafficInfo(upload, download);
+        System.out.println("matching index : " + indexs.toString());
+        long rx = 0, tx = 0;
+        for (int index : indexs) {
+            for (int i = index + 1; i < result.size(); i++) {
+                String line = result.get(i);
+                if (line.startsWith("ident"))
+                    break;
+                if (line.startsWith("st")) {
+                    String[] parts = line.split("\\s+");
+                    rx += Long.parseLong(parts[1].substring(3));
+                    tx += Long.parseLong(parts[3].substring(3));
+                }
+            }
+        }
+        System.out.println("collect success : rx " + rx + " tx : " + tx);
+        return new TrafficInfo(tx, rx);
     }
 
 
@@ -147,7 +126,6 @@ public class NetworkMonitor implements IMonitor<Network> {
     21 tx_other_packets ： 发送的其他类型包数
     */
     public TrafficInfo getTrafficsFromSystemFile(int uid) {
-        System.out.println("get traffics info from system file");
         List<String> content = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.NETWORK_SYSTEM_FILE_PATHS);
         long rxBytes = 0, txBytes = 0;
         Log.i(TAG, "collect traffics info size : " + content.size());
@@ -167,72 +145,29 @@ public class NetworkMonitor implements IMonitor<Network> {
         return new TrafficInfo(txBytes, rxBytes);
     }
 
-    private void checkSupportMethod(int uid) {
-        TrafficInfo trafficsFromSystemFile = getTrafficsFromSystemFile(uid);
-        if (trafficsFromSystemFile.getUpload() != 0 && trafficsFromSystemFile.getDownload() != 0) {
-            mSupportMethod = "getTrafficsFromSystemFile";
-        } else {
-            TrafficInfo trafficsFromTrafficStats = getTrafficsFromTrafficStats(uid);
-            if (trafficsFromTrafficStats.getDownload() != -1 && trafficsFromTrafficStats.getUpload() != -1) {
-                mSupportMethod = "getTrafficsFromTrafficStats";
-            } else if (Build.VERSION.SDK_INT >= 23) {
-                try {
-                    TrafficInfo trafficsFromNetworkStatsManager = getTrafficsFromNetworkStatsManager(uid);
-                    if (trafficsFromNetworkStatsManager.getUpload() > 0 && trafficsFromNetworkStatsManager.getDownload() > 0)
-                        mSupportMethod = "getTrafficsFromNetworkStatsManager";
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        if (mSupportMethod == null)
-            mSupportMethod = "unsupported";
-    }
-
 
     @Override
     public Network collect(TargetApp targetApp, long timestamp, ProfileNtf.Builder data) throws Exception {
-        Log.v(TAG, "collect traffics data: timestamp=" + timestamp);
         int uid = AndroidProcessUtils.getUid(mContext, targetApp.getPackageName());
-        System.out.println("collect app uid : " + uid);
-        checkSupportMethod(uid);
-        Log.v(TAG, "this phone chose collect method is " + mSupportMethod);
-        System.out.println("this phone chose collect method is " + mSupportMethod);
-        Network.Builder networkBuilder = Network.newBuilder();
-        TrafficInfo collectInfo;
-        switch (mSupportMethod) {
-            case "getTrafficsFromSystemFile":
-                collectInfo = getTrafficsFromSystemFile(uid);
-                break;
-            case "getTrafficsFromNetworkStatsManager":
-                collectInfo = getTrafficsFromNetworkStatsManager(uid);
-                break;
-            case "getTrafficsFromTrafficStats":
-                collectInfo = getTrafficsFromTrafficStats(uid);
-                break;
-            case "unsupported":
-                return networkBuilder.setDownload(-1).setUpload(-1).build();
-            default:
-                collectInfo = null;
-        }
-
-        if (collectInfo != null) {
-            if (collectInfo.getDownload() >= 0 && collectInfo.getUpload() >= 0) {
-                if (lastRxBytes == 0 || lastTxBytes == 0) {
-                    networkBuilder.setUpload(0);
-                    networkBuilder.setDownload(0);
-                } else {
-                    networkBuilder.setDownload((int) (collectInfo.getDownload() - lastRxBytes));
-                    networkBuilder.setUpload((int) (collectInfo.getUpload() - lastTxBytes));
-                }
-                lastRxBytes = collectInfo.getDownload();
-                lastTxBytes = collectInfo.getUpload();
-            }
+        System.out.println("collect application uid : " + uid);
+        System.out.println("support read system file : " + supportReadSystemFile);
+        TrafficInfo traffics;
+        if (supportReadSystemFile) {
+            traffics = getTrafficsFromSystemFile(uid);
         } else {
-            //UnSupported
-            networkBuilder.setUpload(-1);
-            networkBuilder.setDownload(-1);
-            return networkBuilder.build();
+            traffics = getTrafficsFromDumpsys(uid);
+        }
+        Network.Builder networkBuilder = Network.newBuilder();
+        if (traffics != null) {
+            //first collect
+            if (lastTxBytes == 0 && lastRxBytes == 0) {
+                networkBuilder.setUpload(0).setDownload(0);
+            } else {
+                networkBuilder.setDownload((int) (traffics.getDownload() - lastRxBytes)).setUpload((int) (traffics.getUpload() - lastTxBytes));
+            }
+            lastTxBytes = traffics.getUpload();
+            lastRxBytes = traffics.getDownload();
+            System.out.println("now last bytes is : " + lastRxBytes + " " + lastTxBytes);
         }
         Network network = networkBuilder.build();
         if (data != null) {
@@ -245,4 +180,5 @@ public class NetworkMonitor implements IMonitor<Network> {
     public void setInterestingFields(Map<ProfileReq.DataType, Boolean> dataTypes) {
         // pass
     }
+
 }

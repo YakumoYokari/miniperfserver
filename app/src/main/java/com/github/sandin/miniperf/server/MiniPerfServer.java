@@ -11,6 +11,7 @@ import com.genymobile.scrcpy.wrappers.ActivityThread;
 import com.genymobile.scrcpy.wrappers.Process;
 import com.github.sandin.miniperf.app.BuildConfig;
 import com.github.sandin.miniperf.server.bean.TargetApp;
+import com.github.sandin.miniperf.server.bean.TrafficInfo;
 import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.monitor.AppListMonitor;
 import com.github.sandin.miniperf.server.monitor.BatteryMonitor;
@@ -18,6 +19,7 @@ import com.github.sandin.miniperf.server.monitor.CpuTemperatureMonitor;
 import com.github.sandin.miniperf.server.monitor.GpuFreqMonitor;
 import com.github.sandin.miniperf.server.monitor.GpuUsageMonitor;
 import com.github.sandin.miniperf.server.monitor.MemoryMonitor;
+import com.github.sandin.miniperf.server.monitor.NetworkMonitor;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
 import com.github.sandin.miniperf.server.monitor.ScreenshotMonitor;
 import com.github.sandin.miniperf.server.proto.AppInfo;
@@ -134,7 +136,7 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
 //        String packageName = arguments.getAsString("pkg", null);
-        String packageName = "com.quark.browser";
+        String packageName = "com.xiaomi.market";
         System.out.println("test package name is : " + packageName);
         while (!AndroidProcessUtils.checkAppIsRunning(mContext, packageName)) {
             System.out.println("wait for app start");
@@ -148,7 +150,7 @@ public class MiniPerfServer implements SocketServer.Callback {
             switch (command) {
                 case "memory":
                     System.out.println("start test memory");
-                    MemoryMonitor memoryMonitor = new MemoryMonitor(mContext);
+                    MemoryMonitor memoryMonitor = new MemoryMonitor();
                     while (true) {
                         Memory memory = memoryMonitor.collect(targetApp, System.currentTimeMillis(), null);
                         String dumpMemory = MemoryMonitor.dumpMemory(memory);
@@ -161,19 +163,16 @@ public class MiniPerfServer implements SocketServer.Callback {
                     break;
                 case "network":
                     //Tx : send ,Rx : recv
-                    List<String> result = ReadSystemInfoUtils.readInfoFromDumpsys("netstats", new String[]{"detail"});
-                    for (String line : result) {
-                        System.out.println(line);
-                    }
-//                    NetworkMonitor networkMonitor = new NetworkMonitor(mContext, packageName);
-//                    while (true) {
+                    NetworkMonitor networkMonitor = new NetworkMonitor(mContext);
+                    while (true) {
 //                        Network network = networkMonitor.collect(targetApp, System.currentTimeMillis(), null);
 //                        System.out.println(network.getUpload());
 //                        System.out.println(network.getDownload());
-//                        Thread.sleep(1000);
-//                    }
-//                    networkMonitor.getTrafficsFromDumpsys(uid);
-                    break;
+                        TrafficInfo traffics = networkMonitor.getTrafficsFromDumpsys(uid);
+                        System.out.println("rx : " + traffics.getDownload());
+                        System.out.println("tx : " + traffics.getUpload());
+                        Thread.sleep(500);
+                    }
                 case "appinfo":
                     AppListMonitor appListMonitor = new AppListMonitor(mContext);
                     List<AppInfo> appList = appListMonitor.getAppInfo();
@@ -361,7 +360,7 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     private byte[] handleGetMemoryUsageReq(GetMemoryUsageReq request) {
         if (mMemoryMonitor == null) {
-            mMemoryMonitor = new MemoryMonitor(mContext);
+            mMemoryMonitor = new MemoryMonitor();
         }
         try {
             Memory memory = mMemoryMonitor.collect(new TargetApp(null, request.getPid()), 0, null);

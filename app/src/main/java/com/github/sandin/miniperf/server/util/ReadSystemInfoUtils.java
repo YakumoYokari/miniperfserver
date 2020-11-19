@@ -20,7 +20,6 @@ public class ReadSystemInfoUtils {
     private static final String TAG = "MiniPerfMonitor";
 
     /**
-     * TODO scanner影响性能
      * read system file info
      *
      * @param systemFilePaths
