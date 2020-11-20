@@ -159,6 +159,8 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         float[] normalized_usage_per_cpu;
         float normalized_app_usage;
 
+        File cur_freq_file[];
+				
         private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
         public CPUStat(int pid) {
@@ -213,6 +215,13 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
 
             normalized_usage_per_cpu = new float[cores];
 
+            cur_freq_file = new File[cores];
+
+            for (int i = 0; i < cores; ++i){
+                String filename = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/scaling_cur_freq";
+                cur_freq_file[i] = new File(filename);
+            }
+						
             have_time_in_state = true; // guess
             have_current_freq = true; // guess
 
@@ -321,10 +330,61 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
             return true;
         }
 
+        private int bytes2int(byte[] b, int n){
+            int ret = 0;
+            for(int i = 0; i < n && (b[i] >= '0' && b[i] <= '9'); ++ i){
+                ret = ret * 10 + (b[i] - '0');
+            }
+            return ret;
+        }
+
+        private int _read_all_cur_freq() {
+            int cores_read = 0;
+            FileInputStream files[] = new FileInputStream[cores];
+            for(int i=0; i<cores; ++i){
+                try {
+                    files[i] = new FileInputStream(cur_freq_file[i]);
+                } catch (FileNotFoundException e) {
+                    //e.printStackTrace();
+                }
+            }
+
+            for(int i=0; i<cores; ++i){
+                byte[] buf = new byte[20];
+                current_freq[i] = 0;
+                if (files[i] == null) continue;
+                try {
+                    int read = files[i].read(buf);
+                    current_freq[i] = bytes2int(buf, read);
+                    cores_read ++;
+                } catch (IOException e) {
+                    //e.printStackTrace();
+                }
+            }
+
+            for (int i = 0; i < cores; ++i){
+                if (files[i] != null){
+                    try {
+                        files[i].close();
+                    } catch (IOException e) {
+                        //e.printStackTrace();
+                    }
+                }
+            }
+
+            for (int i = 0; i < cores; ++i){
+                if (current_freq[i] > 0 && max_freq[i] == 0){
+                    _read_max_freq(i);
+                }
+            }
+
+            return cores_read;
+        }
         private boolean _read_current_freq(int x){
             String filename = "/sys/devices/system/cpu/cpu" + x + "/cpufreq/scaling_cur_freq";
             File f = new File(filename);
-            BufferedReader reader = null;
+            //BufferedReader reader = null;
+            FileInputStream ff = new FileInputStream(f);
             current_freq[x] = 0;
             try{
                 reader =new BufferedReader(new FileReader(f));
@@ -447,12 +507,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
 
         private boolean read() throws FileNotFoundException {
             if (have_current_freq){
-                int offline = 0;
-                for(int i = 0; i < cores; ++i){
-                    _read_current_freq(i);
-                    if (current_freq[i] == 0) offline++;
-                }
-                if (offline == cores){
+                if (_read_all_cur_freq() == 0){
                     have_current_freq = false;
                 }
             }
