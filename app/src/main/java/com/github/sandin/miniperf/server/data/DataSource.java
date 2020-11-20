@@ -30,11 +30,21 @@ public final class DataSource {
             "/sys/devices/system/cpu/cpufreq/cput_attributes/cur_temp",
             "/sys/devices/virtual/hwmon/hwmon2/temp1_input",
             "/sys/devices/platform/coretemp.0/temp2_input",
-            "/sys/devices/system/cpu/cpu0/cpufreq/cpu_temp",
             "/sys/devices/platform/omap/omap_temp_sensor.0/temperature",
             "/sys/class/thermal/thermal_zone1/temp",
             "/sys/devices/platform/s5p-tmu/temperature",
             "/sys/devices/w1 bus master/w1_master_attempts",
+            "/sys/devices/system/cpu/cpu0/cpufreq/cpu_temp",
+            "/sys/devices/system/cpu/cpu0/cpufreq/FakeShmoo_cpu_temp",
+            "/sys/class/i2c-adapter/i2c-4/4-004c/temperature",
+            "/sys/devices/platform/tegra-i2c.3/i2c-4/4-004c/temperature",
+            "/sys/devices/platform/tegra_tmon/temp1_input",
+            "/sys/class/hwmon/hwmon0/device/temp1_input",
+            "/sys/devices/virtual/thermal/thermal_zone1/temp",
+            "/sys/class/thermal/thermal_zone3/temp",
+            "/sys/class/thermal/thermal_zone4/temp",
+            "/sys/class/hwmon/hwmonX/temp1_input",
+            "/sys/devices/platform/s5p-tmu/curr_temp"
     };
 
     public static final String[] CURRENT_SYSTEM_FILE_PATHS = {

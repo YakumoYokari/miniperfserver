@@ -294,16 +294,16 @@ public class MiniPerfServer implements SocketServer.Callback {
         return MiniPerfServerProtocol.newBuilder().setStopProfileRsp(StopProfileRsp.newBuilder()).build().toByteArray();
     }
 
-    private byte[] handleProfileReq(SocketServer.ClientConnection clientConnection, ProfileReq request) {
+    private byte[] handleProfileReq(final SocketServer.ClientConnection clientConnection, ProfileReq request) {
         //只能存在一条长链接
-        if (session != null) {
-            return MiniPerfServerProtocol.newBuilder().setProfileRsp(
-                    ProfileRsp.newBuilder()
-                            .setTimestamp(System.currentTimeMillis())
-                            .setErrorCode(-1)
-                            .setSessionId(session.getSessionId()))
-                    .build().toByteArray();
-        }
+//        if (session != null) {
+//            return MiniPerfServerProtocol.newBuilder().setProfileRsp(
+//                    ProfileRsp.newBuilder()
+//                            .setTimestamp(System.currentTimeMillis())
+//                            .setErrorCode(-1)
+//                            .setSessionId(session.getSessionId()))
+//                    .build().toByteArray();
+//        }
         TargetApp targetApp = new TargetApp();
         String packageName = request.getProfileApp().getAppInfo().getPackageName();
         targetApp.setPackageName(packageName);
@@ -322,7 +322,7 @@ public class MiniPerfServer implements SocketServer.Callback {
                                 ProcessNotFoundNTF.newBuilder()
                         ).build().toByteArray()
                 );
-                Thread.sleep(500);
+                Thread.sleep(1000);
                 appIsRunning = AndroidProcessUtils.checkAppIsRunning(mContext, packageName);
                 Log.i(TAG, "now app state is : " + appIsRunning);
             } catch (InterruptedException e) {
@@ -340,6 +340,24 @@ public class MiniPerfServer implements SocketServer.Callback {
         targetApp.setPid(pid);
         PerformanceMonitor performanceMonitor = new PerformanceMonitor(mContext, 1000, 2000);
         session = SessionManager.getInstance().createSession(clientConnection, performanceMonitor, targetApp, dataTypes);
+//        new Thread() {
+//            @Override
+//            public void run() {
+//                System.out.println("client connection state : " + clientConnection.isConnected());
+//                Log.i(TAG, "client connection state : " + clientConnection.isConnected());
+//                if (!clientConnection.isConnected()) {
+//                    System.out.println("client connection closed!");
+//                    Log.i(TAG, "client connection closed!");
+//                    SessionManager.getInstance().destroySession(mContext, session);
+//                    session = null;
+//                }
+//                try {
+//                    Thread.sleep(1000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }.start();
         if (session != null) {
             sessionId = session.getSessionId();
         } else {
