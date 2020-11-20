@@ -13,6 +13,7 @@ import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -81,7 +82,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         //Thread.sleep(1000);
         //SimpleTimer st = new SimpleTimer();
         stat.update();
-        stat.print();
+        //stat.print();
         //st.Println("CPUSTAT");
             /*
             File myObj = new File("/proc/stat");
@@ -383,8 +384,7 @@ public class CpuMonitor implements IMonitor<CpuInfo> {
         private boolean _read_current_freq(int x){
             String filename = "/sys/devices/system/cpu/cpu" + x + "/cpufreq/scaling_cur_freq";
             File f = new File(filename);
-            //BufferedReader reader = null;
-            FileInputStream ff = new FileInputStream(f);
+            BufferedReader reader = null;
             current_freq[x] = 0;
             try{
                 reader =new BufferedReader(new FileReader(f));
