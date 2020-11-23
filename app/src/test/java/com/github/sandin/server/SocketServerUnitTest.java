@@ -12,6 +12,7 @@ import com.github.sandin.miniperf.server.proto.FrameTime;
 import com.github.sandin.miniperf.server.proto.GetAppInfoReq;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoReq;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
+import com.github.sandin.miniperf.server.proto.GetCpuMaxFreqReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperf.server.proto.GpuFreq;
@@ -134,7 +135,8 @@ public class SocketServerUnitTest {
         String packageName = "com.tencent.tmgp.jx3m";
         //packageName = "com.xsj.jxsj3.xsj";
         //packageName = "cn.testplus.qc_agent";
-        packageName = "com.xiaomi.shop";
+//        packageName = "com.xiaomi.shop";
+        packageName = "com.ss.android.ugc.aweme";
         int pid = 3104;
         String processName = packageName;
         ProfileApp app = ProfileApp.newBuilder()
@@ -259,6 +261,18 @@ public class SocketServerUnitTest {
         System.out.println("recv response bytes length: " + rsp.length);
         MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(rsp);
         System.out.println("recv response: " + response);
+    }
+
+    @Test
+    public void getMaxCpuFreqTest() throws IOException {
+        MiniPerfServerProtocol request = MiniPerfServerProtocol.newBuilder().setGetCpuMaxFreqReq(GetCpuMaxFreqReq.newBuilder().build()).build();
+        System.out.println("send request: " + request);
+        mClient.sendMessage(request.toByteArray());
+        byte[] rsp = mClient.readMessage();
+        System.out.println("recv response bytes length: " + rsp.length);
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.parseFrom(rsp);
+        System.out.println("recv response: " + response);
+
     }
 
 

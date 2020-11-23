@@ -26,6 +26,7 @@ import com.github.sandin.miniperf.server.proto.CheckDeviceRsp;
 import com.github.sandin.miniperf.server.proto.EmptyRsp;
 import com.github.sandin.miniperf.server.proto.GetAppInfoRsp;
 import com.github.sandin.miniperf.server.proto.GetBatteryInfoRsp;
+import com.github.sandin.miniperf.server.proto.GetCpuMaxFreqRsp;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageReq;
 import com.github.sandin.miniperf.server.proto.GetMemoryUsageRsp;
 import com.github.sandin.miniperf.server.proto.GpuFreq;
@@ -46,6 +47,7 @@ import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
+import com.github.sandin.miniperf.server.util.ConvertUtils;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
@@ -136,12 +138,14 @@ public class MiniPerfServer implements SocketServer.Callback {
 
     public static void test(ArgumentParser.Arguments arguments) throws Exception {
 //        String packageName = arguments.getAsString("pkg", null);
-        String packageName = "com.xiaomi.shop";
+        String packageName = "com.xiaomi.market";
+        packageName = "com.ss.android.ugc.aweme";
+        //packageName = "com.tencent.tmgp.jx3m";
         System.out.println("test package name is : " + packageName);
-//        while (!AndroidProcessUtils.checkAppIsRunning(mContext, packageName)) {
-//            System.out.println("wait for app start");
-//            Thread.sleep(500);
-//        }
+        while (!AndroidProcessUtils.checkAppIsRunning(mContext, packageName)) {
+            System.out.println("wait for app start");
+            Thread.sleep(500);
+        }
         int pid = AndroidProcessUtils.getPid(mContext, packageName);
         int uid = AndroidProcessUtils.getUid(mContext, packageName);
         TargetApp targetApp = new TargetApp(packageName, pid);
@@ -270,11 +274,28 @@ public class MiniPerfServer implements SocketServer.Callback {
                 return handleToggleInterestingFiledNtf(request.getToggleInterestingFiledNTF());
             case CHECKDEVICEREQ:
                 return handleCheckDeviceReq();
+            case GETCPUMAXFREQREQ:
+                return handleGetCpuMaxFreqReq();
             default:
                 Log.i(TAG, "handleRequestMessage: Unknown protocol " + request.getProtocolCase());
                 break;
         }
         return null;
+    }
+
+    private byte[] handleGetCpuMaxFreqReq() {
+        GetCpuMaxFreqRsp.Builder builder = GetCpuMaxFreqRsp.newBuilder();
+        int cores = Runtime.getRuntime().availableProcessors();
+        for (int i = 0; i < cores; i++) {
+            //khz
+            String minFreqPath = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_min_freq";
+            String maxFreqPath = "/sys/devices/system/cpu/cpu" + i + "/cpufreq/cpuinfo_max_freq";
+            int minFreq = Integer.parseInt(ReadSystemInfoUtils.readInfoFromSystemFile(minFreqPath).get(0));
+            int maxFreq = Integer.parseInt(ReadSystemInfoUtils.readInfoFromSystemFile(maxFreqPath).get(0));
+            builder.addMinFreq(ConvertUtils.kHz2MHz(minFreq));
+            builder.addMaxFreq(ConvertUtils.kHz2MHz(maxFreq));
+        }
+        return MiniPerfServerProtocol.newBuilder().setGetCpuMaxFreqRsp(builder).build().toByteArray();
     }
 
     private byte[] handleToggleInterestingFiledNtf(ToggleInterestingFiledNTF request) {

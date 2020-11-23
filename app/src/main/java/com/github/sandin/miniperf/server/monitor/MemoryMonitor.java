@@ -8,6 +8,7 @@ import com.github.sandin.miniperf.server.proto.MemoryDetail;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.proto.VirtualMemory;
+import com.github.sandin.miniperf.server.util.ConvertUtils;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.HashMap;
@@ -51,9 +52,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
     }
 
     //kb -> mb 四舍五入
-    private int kb2Mb(int kb) {
-        return Math.round((float) kb / 1024);
-    }
+
 
     private int getLineDataByIndex(String line, int index) {
         return Integer.parseInt(line.split("\\s+")[index]);
@@ -82,7 +81,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
             if (line.startsWith("Native Heap:"))
                 nativePss = getLineDataByIndex(line, 2);
         }
-        memoryBuilder.setPss(kb2Mb(pss));
+        memoryBuilder.setPss(ConvertUtils.kb2Mb(pss));
         detailBuilder.setUnknown(unknow).setGfx(gfx).setGl(gl).setNativePss(nativePss);
         //vss & swap kb
         List<String> vssAndSwapResult = ReadSystemInfoUtils.readInfoFromSystemFile("/proc/" + pid + "/status");
@@ -98,14 +97,14 @@ public class MemoryMonitor implements IMonitor<Memory> {
                 swap = getLineDataByIndex(line, 1);
             }
         }
-        memoryBuilder.setVirtualMemory(kb2Mb(vss)).setSwap(kb2Mb(swap));
+        memoryBuilder.setVirtualMemory(ConvertUtils.kb2Mb(vss)).setSwap(ConvertUtils.kb2Mb(swap));
         memoryBuilder.setMemoryDetail(detailBuilder);
         Memory memory = memoryBuilder.build();
 
         Log.v(TAG, dumpMemory(memory));
         if (data != null) {
             data.setMemory(memory);
-            data.setVirtualMemory(VirtualMemory.newBuilder().setVirtualMemory(kb2Mb(vss)).build());
+            data.setVirtualMemory(VirtualMemory.newBuilder().setVirtualMemory(ConvertUtils.kb2Mb(vss)).build());
         }
         return memory;
     }
