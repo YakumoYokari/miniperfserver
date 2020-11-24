@@ -9,4 +9,7 @@ public class ConvertUtils {
         return Math.round((float) kb / 1024);
     }
 
+    public static int micro2Milli(int micro) {
+        return Math.round((float) micro / 1000);
+    }
 }

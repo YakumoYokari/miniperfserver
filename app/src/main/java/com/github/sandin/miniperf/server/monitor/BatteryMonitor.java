@@ -13,6 +13,7 @@ import com.github.sandin.miniperf.server.data.DataSource;
 import com.github.sandin.miniperf.server.proto.Power;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
+import com.github.sandin.miniperf.server.util.ConvertUtils;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
 import java.util.List;
@@ -58,11 +59,6 @@ public class BatteryMonitor implements IMonitor<Power> {
         return sb.toString();
     }
 
-    //读取配置文件出来的单位为μ 目前只发现华为/荣耀手机读出来就是ma
-    private static int micro2Milli(int micro) {
-        return Math.round((float) micro / 1000);
-    }
-
     /**
      * get voltage from dump
      */
@@ -79,23 +75,21 @@ public class BatteryMonitor implements IMonitor<Power> {
         return voltage;
     }
 
-    @VisibleForTesting
     private Power getPowerInfoFromServer() {
         int voltage = 0;
         int current = 0;
         List<String> currentContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.CURRENT_SYSTEM_FILE_PATHS);
         List<String> voltageContent = ReadSystemInfoUtils.readInfoFromSystemFile(DataSource.VOLTAGE_SYSTEM_FILE_PATHS);
         if (currentContent.size() > 0 && voltageContent.size() > 0) {
-            voltage = micro2Milli(Integer.parseInt(voltageContent.get(0)));
-            current = micro2Milli(Math.abs(Integer.parseInt(currentContent.get(0))));
+            voltage = ConvertUtils.micro2Milli(Integer.parseInt(voltageContent.get(0)));
+            current = ConvertUtils.micro2Milli(Math.abs(Integer.parseInt(currentContent.get(0))));
         }
         return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    @VisibleForTesting
     private Power getPowerInfoFromApp() {
-        int current = micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
+        int current = ConvertUtils.micro2Milli(Math.abs(mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)));
         int voltage = 0; //FIXME: mContext.registerReceiver(null, new IntentFilter("android.intent.action.BATTERY_CHANGED")).getIntExtra("voltage", -1);
         return Power.newBuilder().setCurrent(current).setVoltage(voltage).build();
     }
@@ -109,11 +103,12 @@ public class BatteryMonitor implements IMonitor<Power> {
         System.out.println("brand is " + brandName);
         Log.i(TAG, "brand is " + brandName);
         Log.i(TAG, "origin current info : " + originCurrent);
+        originCurrent = Math.abs(originCurrent);
         int current = 0;
-        if (brandName.equals("HUAWEI") || brandName.equals("HONOR")) {
-            current = Math.abs(originCurrent);
+        if (originCurrent <= 1000) {
+            current = originCurrent;
         } else {
-            current = micro2Milli(Math.abs(originCurrent));
+            current = ConvertUtils.micro2Milli(originCurrent);
         }
         Log.i(TAG, "collect current : " + current);
         int voltage = getVoltageFromDump();

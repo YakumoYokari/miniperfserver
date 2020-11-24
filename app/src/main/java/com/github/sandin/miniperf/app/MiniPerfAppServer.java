@@ -72,27 +72,31 @@ public class MiniPerfAppServer implements Runnable {
                     if (response != null)
                         sendMessage(response);
                 } catch (IOException e) {
-                    e.printStackTrace();
+//                    e.printStackTrace();
                 }
 
             }
         }
 
         private byte[] handleRequest(MiniPerfAppProtocol request) {
+            Log.i(TAG, "request type : " + request.getProtocolCase());
             switch (request.getProtocolCase()) {
                 case APPHELLOREQ:
                     AppHelloRsp appHelloRsp = AppHelloRsp.newBuilder().build();
                     return MiniPerfAppProtocol.newBuilder().setAppHelloRsp(appHelloRsp).build().toByteArray();
                 case GETSCREENINFOREQ:
+                    Log.i(TAG, "handle get screen info request");
                     GetScreenInfoRsp screenInfo = PhoneInfoManager.getScreenInfo(mContext);
                     return MiniPerfAppProtocol.newBuilder().setGetScreenInfoRsp(screenInfo).build().toByteArray();
                 case GETLMKTHRESHOLDREQ:
+                    Log.i(TAG, "handle get lmk threshold request");
                     int lmkThreshold = PhoneInfoManager.getLMKThreshold(mContext);
                     GetLMKThresholdRsp getLMKThresholdRsp = GetLMKThresholdRsp.newBuilder()
                             .setMemoryThreshold(lmkThreshold)
                             .build();
                     return MiniPerfAppProtocol.newBuilder().setGetLMKThresholdRsp(getLMKThresholdRsp).build().toByteArray();
                 case GETAPPINFOREQ:
+                    Log.i(TAG, "handle get app list request");
                     List<AppInfo> appList = PhoneInfoManager.getAppInfoList(mContext);
                     GetAppInfoRsp getAppInfoRsp = GetAppInfoRsp.newBuilder().addAllAppInfo(appList).build();
                     return MiniPerfAppProtocol.newBuilder().setGetAppInfoRsp(getAppInfoRsp).build().toByteArray();
