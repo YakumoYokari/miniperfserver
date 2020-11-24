@@ -105,7 +105,7 @@ public class BatteryMonitor implements IMonitor<Power> {
         Log.i(TAG, "origin current info : " + originCurrent);
         originCurrent = Math.abs(originCurrent);
         int current = 0;
-        if (originCurrent <= 1000) {
+        if (originCurrent <= 10000) {
             current = originCurrent;
         } else {
             current = ConvertUtils.micro2Milli(originCurrent);
