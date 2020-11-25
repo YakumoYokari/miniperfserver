@@ -63,7 +63,7 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
             }
             //跳过没有Activity的（无法启动）
             intent.setPackage(applicationInfo.packageName);
-            if (mContext.getPackageManager().queryIntentActivities(intent, 0).isEmpty()) {
+            if (mPackageManager.queryIntentActivities(intent, 0).isEmpty()) {
                 continue;
             }
             //isSystemApp
@@ -90,7 +90,6 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
             }
             //label
             appInfoBuilder.setLabel(applicationInfo.loadLabel(mContext.getPackageManager()).toString());
-
             //icon
             int iconId = applicationInfo.icon;
             AssetManager assetManager = null;
@@ -120,48 +119,47 @@ public class AppListMonitor implements IMonitor<List<AppInfo>> {
                 appInfoBuilder.setIcon(ByteString.EMPTY);
             }
 
-
             //debuggable
             if ((applicationInfo.flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
                 appInfoBuilder.setIsDebuggable(true);
             }
-
             //process
             @SuppressLint("WrongConstant") PackageInfo packageArchiveInfo = mContext.getPackageManager().getPackageArchiveInfo(applicationInfo.sourceDir, 15);
-            TreeSet<String> set = new TreeSet<>();
-            if (packageArchiveInfo.activities != null) {
-                for (ActivityInfo activityInfo : packageArchiveInfo.activities) {
-                    if (activityInfo.processName != null) {
-                        set.add(activityInfo.processName);
+            if (packageArchiveInfo != null) {
+                TreeSet<String> set = new TreeSet<>();
+                if (packageArchiveInfo.activities != null) {
+                    for (ActivityInfo activityInfo : packageArchiveInfo.activities) {
+                        if (activityInfo.processName != null) {
+                            set.add(activityInfo.processName);
+                        }
                     }
                 }
-            }
-            if (packageArchiveInfo.receivers != null) {
-                for (ActivityInfo activityInfo2 : packageArchiveInfo.receivers) {
-                    if (activityInfo2.processName != null) {
-                        set.add(activityInfo2.processName);
+                if (packageArchiveInfo.receivers != null) {
+                    for (ActivityInfo activityInfo2 : packageArchiveInfo.receivers) {
+                        if (activityInfo2.processName != null) {
+                            set.add(activityInfo2.processName);
+                        }
                     }
                 }
-            }
-            if (packageArchiveInfo.providers != null) {
-                for (ProviderInfo providerInfo : packageArchiveInfo.providers) {
-                    if (providerInfo.processName != null) {
-                        set.add(providerInfo.processName);
+                if (packageArchiveInfo.providers != null) {
+                    for (ProviderInfo providerInfo : packageArchiveInfo.providers) {
+                        if (providerInfo.processName != null) {
+                            set.add(providerInfo.processName);
+                        }
                     }
                 }
-            }
-            if (packageArchiveInfo.services != null) {
-                for (final ServiceInfo serviceInfo : packageArchiveInfo.services) {
-                    if (serviceInfo.processName != null) {
-                        set.add(serviceInfo.processName);
+                if (packageArchiveInfo.services != null) {
+                    for (ServiceInfo serviceInfo : packageArchiveInfo.services) {
+                        if (serviceInfo.processName != null) {
+                            set.add(serviceInfo.processName);
+                        }
                     }
                 }
+                set.remove(applicationInfo.packageName);
+                for (String s : set) {
+                    appInfoBuilder.addProcessList(s);
+                }
             }
-            set.remove(applicationInfo.packageName);
-            for (String s : set) {
-                appInfoBuilder.addProcessList(s);
-            }
-
             //build
             AppInfo appInfo = appInfoBuilder.build();
             appInfoList.add(appInfo);
