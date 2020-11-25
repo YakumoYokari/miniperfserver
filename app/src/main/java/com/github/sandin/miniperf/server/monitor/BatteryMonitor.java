@@ -98,10 +98,7 @@ public class BatteryMonitor implements IMonitor<Power> {
     @VisibleForTesting
     private Power getPowerInfoFromDex() {
         int originCurrent = mBatteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW);
-        String brandName = Build.BRAND;
         System.out.println("origin current info : " + originCurrent);
-        System.out.println("brand is " + brandName);
-        Log.i(TAG, "brand is " + brandName);
         Log.i(TAG, "origin current info : " + originCurrent);
         originCurrent = Math.abs(originCurrent);
         int current = 0;

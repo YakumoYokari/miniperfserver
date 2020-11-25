@@ -75,10 +75,10 @@ public class MemoryMonitor implements IMonitor<Memory> {
             if (line.startsWith("Unknown"))
                 unknow = getLineDataByIndex(line, 1);
             //pss
-            if (line.startsWith("TOTAL:"))
+            if (line.startsWith("TOTAL"))
                 pss = getLineDataByIndex(line, 1);
             //native
-            if (line.startsWith("Native Heap:"))
+            if (line.startsWith("Native Heap"))
                 nativePss = getLineDataByIndex(line, 2);
         }
         memoryBuilder.setPss(ConvertUtils.kb2Mb(pss));
