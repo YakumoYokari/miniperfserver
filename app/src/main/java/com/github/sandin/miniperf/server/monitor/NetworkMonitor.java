@@ -104,7 +104,7 @@ public class NetworkMonitor implements IMonitor<Network> {
                 if (line.equals(content.get(0)))
                     continue;
                 String[] parts = line.split("\\s+");
-                int lineUid = Integer.parseInt(parts[3]);
+                long lineUid = Long.parseLong(parts[3]);
                 if ((lineUid == uid) && (!parts[1].equals("lo"))) {
                     rxBytes += Long.parseLong(parts[5]);
                     txBytes += Long.parseLong(parts[7]);
