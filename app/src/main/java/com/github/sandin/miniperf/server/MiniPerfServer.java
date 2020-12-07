@@ -45,11 +45,13 @@ import com.github.sandin.miniperf.server.proto.ToggleInterestingFiledNTF;
 import com.github.sandin.miniperf.server.server.SocketServer;
 import com.github.sandin.miniperf.server.session.Session;
 import com.github.sandin.miniperf.server.session.SessionManager;
+import com.github.sandin.miniperf.server.util.AdbUtils;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
 import com.github.sandin.miniperf.server.util.ArgumentParser;
 import com.github.sandin.miniperf.server.util.ConvertUtils;
 import com.github.sandin.miniperf.server.util.ReadSystemInfoUtils;
 
+import java.io.IOException;
 import java.util.List;
 
 
@@ -131,7 +133,17 @@ public class MiniPerfServer implements SocketServer.Callback {
                 return;
             }
         }
-
+        //check server existed
+        boolean flag;
+        try {
+            flag = checkServerExist();
+            if (flag) {
+                Log.e(TAG, "MiniPerf Server has existed");
+                System.exit(-1);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         MiniPerfServer app = new MiniPerfServer();
         app.run(arguments);
     }
@@ -460,5 +472,21 @@ public class MiniPerfServer implements SocketServer.Callback {
         }
         System.out.println(rspBuilder.build());
         return MiniPerfServerProtocol.newBuilder().setCheckDeviceRsp(rspBuilder).build().toByteArray();
+    }
+
+    private static boolean checkServerExist() throws IOException {
+        boolean flag = false;
+        List<String> result = AdbUtils.executeCommand("ps");
+        for (int i = 1; i < result.size(); i++) {
+            String line = result.get(i);
+            String[] parts = line.split("\\s+");
+            if (parts.length == 9) {
+                if (parts[8].equals("MiniPerfServer") && parts[5].equals("__skb_wait_for_more_packets")) {
+                    flag = true;
+                    break;
+                }
+            }
+        }
+        return flag;
     }
 }
