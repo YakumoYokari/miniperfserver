@@ -8,7 +8,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.VisibleForTesting;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
-import com.github.sandin.miniperf.server.proto.AppClosedNTF;
+import com.github.sandin.miniperf.server.proto.ProcessNotFoundNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.util.AndroidProcessUtils;
@@ -106,7 +106,7 @@ public class PerformanceMonitor {
         }
     }
 
-    private void notifySendCloseNtf(AppClosedNTF ntf) {
+    private void notifySendCloseNtf(ProcessNotFoundNTF ntf) {
         for (Callback callback : mCallback) {
             callback.sendAppClosedNTF(ntf);
         }
@@ -372,7 +372,7 @@ public class PerformanceMonitor {
          */
         void onUpdate(ProfileNtf data);
 
-        void sendAppClosedNTF(AppClosedNTF appClosedNTF);
+        void sendAppClosedNTF(ProcessNotFoundNTF ntf);
     }
 
     private class MonitorWorker implements Runnable {
@@ -406,7 +406,7 @@ public class PerformanceMonitor {
             Log.i(TAG, "application is close !");
             //after app close , close server and clear monitors
             Log.i(TAG, "stop performance monitor");
-            notifySendCloseNtf(AppClosedNTF.newBuilder().build());
+            notifySendCloseNtf(ProcessNotFoundNTF.newBuilder().build());
             stop();
         }
     }

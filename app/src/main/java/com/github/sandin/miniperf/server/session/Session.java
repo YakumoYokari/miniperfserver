@@ -4,8 +4,8 @@ import androidx.annotation.NonNull;
 
 import com.github.sandin.miniperf.server.bean.TargetApp;
 import com.github.sandin.miniperf.server.monitor.PerformanceMonitor;
-import com.github.sandin.miniperf.server.proto.AppClosedNTF;
 import com.github.sandin.miniperf.server.proto.MiniPerfServerProtocol;
+import com.github.sandin.miniperf.server.proto.ProcessNotFoundNTF;
 import com.github.sandin.miniperf.server.proto.ProfileNtf;
 import com.github.sandin.miniperf.server.proto.ProfileReq;
 import com.github.sandin.miniperf.server.server.SocketServer;
@@ -80,15 +80,11 @@ public final class Session implements PerformanceMonitor.Callback {
     }
 
     @Override
-    public void sendAppClosedNTF(AppClosedNTF appClosedNTF) {
-        //if (true && mConnection.isConnected()) { // TODO: Bug!!
-        MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setAppClosedNTF(appClosedNTF).build();
+    public void sendAppClosedNTF(ProcessNotFoundNTF ntf) {
+        MiniPerfServerProtocol response = MiniPerfServerProtocol.newBuilder().setProcessNotFoundNTF(ntf).build();
         mConnection.sendMessage(response.toByteArray());
-        //} else {
-        //    Log.w("MiniPerfServer", "disconnected, can not send data to client");
-        //    // TODO: disconnect
-        //}
     }
+
 
     public int getSessionId() {
         return mSessionId;
