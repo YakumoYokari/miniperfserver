@@ -53,11 +53,13 @@ public class MiniPerfAppServer implements Runnable {
         private final DataOutputStream mSocketOutputStream;
         @NonNull
         private Context mContext;
+        private Socket mSocket;
 
         public Server(Context mContext, Socket socket) throws IOException {
             this.mContext = mContext;
             mSocketInputStream = new DataInputStream(socket.getInputStream());
             mSocketOutputStream = new DataOutputStream(socket.getOutputStream());
+            mSocket = socket;
         }
 
         @Override
@@ -72,7 +74,17 @@ public class MiniPerfAppServer implements Runnable {
                     if (response != null)
                         sendMessage(response);
                 } catch (IOException e) {
-//                    e.printStackTrace();
+                    e.printStackTrace();
+                    if (mSocket != null) {
+                        try {
+                            mSocket.close();
+                            return;
+                        } catch (IOException ioException) {
+                            ioException.printStackTrace();
+                            return;
+                        }
+                    } else
+                        return;
                 }
 
             }

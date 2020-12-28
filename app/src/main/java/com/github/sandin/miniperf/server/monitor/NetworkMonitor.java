@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * Network Monitor
- * 三种收集信息方式
+ * 两种收集信息方式
  * 1、getTrafficsFromNetworkStatsManager 通过NetworkStatsManager获取 仅支持Api>= 23
  * 2、getTrafficsFromSystemFile 通过解析 /proc/net/xt_qtaguid/stats 高版本安卓会移除
  * return -1为不支持
