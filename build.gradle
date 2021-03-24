@@ -9,7 +9,7 @@ buildscript {
         maven { url 'https://maven.aliyun.com/repository/jcenter'}
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.0'
+        classpath 'com.android.tools.build:gradle:4.1.1'
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.13'
 
         // NOTE: Do not place your application dependencies here; they belong
