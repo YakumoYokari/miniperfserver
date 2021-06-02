@@ -62,7 +62,7 @@ public class MemoryMonitor implements IMonitor<Memory> {
         Memory.Builder memoryBuilder = Memory.newBuilder();
         MemoryDetail.Builder detailBuilder = MemoryDetail.newBuilder();
         int pid = targetApp.getPid();
-        List<String> meminfoResult = ReadSystemInfoUtils.readInfoFromDumpsys("meminfo", new String[]{String.valueOf(pid), "--local"});
+        List<String> meminfoResult = ReadSystemInfoUtils.readInfoFromDumpsys("meminfo", new String[]{"--local", String.valueOf(pid) });
         int gl = 0, gfx = 0, unknow = 0, pss = 0, nativePss = 0;
         for (String line : meminfoResult) {
             //gfx
