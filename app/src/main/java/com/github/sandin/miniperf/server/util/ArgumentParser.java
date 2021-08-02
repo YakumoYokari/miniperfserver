@@ -1,6 +1,8 @@
 package com.github.sandin.miniperf.server.util;
 
+import android.util.Log;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -84,6 +86,7 @@ public final class ArgumentParser {
         for (String arg : args) {
             if (expectValueArgument != null) { // It is a value
                 expectValueArgument.value = arg;
+                expectValueArgument = null;
             } else { // maybe it's a key
                 String key = null;
                 if (arg.startsWith("--")) {
