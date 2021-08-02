@@ -65,20 +65,22 @@ public class MemoryMonitor implements IMonitor<Memory> {
         List<String> meminfoResult = ReadSystemInfoUtils.readInfoFromDumpsys("meminfo", new String[]{"--local", String.valueOf(pid) });
         int gl = 0, gfx = 0, unknow = 0, pss = 0, nativePss = 0;
         for (String line : meminfoResult) {
+            String line2 = line.trim();
             //gfx
-            if (line.startsWith("Gfx dev"))
+            if (line2.startsWith("Gfx dev"))
                 gfx = getLineDataByIndex(line, 2);
             //gl
-            if (line.startsWith("GL mtrack"))
+            if (line2.startsWith("GL mtrack") || line2.startsWith("EGL mtrack"))
                 gl = getLineDataByIndex(line, 2);
             //unknow
-            if (line.startsWith("Unknown"))
+            if (line2.startsWith("Unknown"))
                 unknow = getLineDataByIndex(line, 1);
             //pss
-            if (line.startsWith("TOTAL"))
-                pss = getLineDataByIndex(line, 1);
+            if (line2.startsWith("TOTAL"))
+                if (pss == 0)  // 只设置第一次出现的 TOTAL，防止Android 11有 TOTAL 和 TOTAL PSS等
+                    pss = getLineDataByIndex(line, 1);
             //native
-            if (line.startsWith("Native Heap"))
+            if (line2.startsWith("Native Heap"))
                 nativePss = getLineDataByIndex(line, 2);
         }
         memoryBuilder.setPss(ConvertUtils.kb2Mb(pss));
